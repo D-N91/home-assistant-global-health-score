@@ -2,7 +2,7 @@
 **A Technical Specification for System Stability and Hygiene Standardized Monitoring.**
 
 [![HAGHS Standard](https://img.shields.io/badge/HAGHS-Standard-blue?style=for-the-badge&logo=home-assistant&logoColor=white)](https://github.com/d-n91/home-assistant-global-health-score)
-[![Release](https://img.shields.io/badge/Version-1.1.0--Spec-green?style=for-the-badge)](https://github.com/d-n91/home-assistant-global-health-score/releases)
+[![Release](https://img.shields.io/badge/Version-1.1.0-green?style=for-the-badge)](https://github.com/d-n91/home-assistant-global-health-score/releases)
 
 ## 📄 Abstract
 As Home Assistant matures into a mission-critical Smart Home OS, the need for a unified stability metric becomes paramount. **HAGHS** is a logical framework designed to provide an objective **Health Index (0-100)**. It differentiates between transient hardware load and chronic maintenance neglect, providing users with a "North Star" for instance optimization.
@@ -58,6 +58,8 @@ Every HAGHS implementation includes a `recommendations` attribute. This engine p
 A functional Proof of Concept (PoC) using the Home Assistant Template Engine is provided in [`haghs.yaml`](./haghs.yaml).
 
 ### UI Integration Example
+![HAGHS Dashboard example](https://github.com/user-attachments/assets/6eefb5fa-b646-4777-a2a1-8a3706ce453d)
+
 ```yaml
 type: vertical-stack
 cards:
