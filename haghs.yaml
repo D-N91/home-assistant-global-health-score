@@ -1,0 +1,55 @@
+# HAGHS - Home Assistant Global Health Score v1.0
+# Naming Convention: Area: Object - Function
+
+- sensor:
+    - name: "System: HA - Global Health Score"
+      unique_id: system_ha_global_health_score
+      state: >
+        {# --- DATA COLLECTION --- #}
+        {% set cpu = states('sensor.system_monitor_YOUR_ID') | float(0) %}
+        {% set mem = states('sensor.system_monitor_YOUR_ID') | float(0) %}
+        {% set disk = states('sensor.system_monitor_YOUR_ID') | float(0) %}
+        {% set backup_stale = is_state('binary_sensor.backups_stale', 'on') %}
+        {% set updates = states.update | selectattr('state', 'eq', 'on') | list | count %}
+        {% set notifications = states.persistent_notification | list | count %}
+        {% set zombies = states 
+            | selectattr('state', 'in', ['unavailable', 'unknown']) 
+            | rejectattr('domain', 'in', ['button', 'scene', 'group', 'input_button', 'device_tracker', 'automation', 'script', 'update']) 
+            | list | count %}
+
+        {# --- SCORE CALCULATION --- #}
+        {% set hw = 100 - (cpu * 0.2) - ([(mem - 70) * 0.5, 0] | max) - ([(disk - 80) * 1.0, 0] | max) %}
+        {% set hw_final = [0, hw] | max %}
+        
+        {% set zombie_penalty = [(zombies / 5) | round(0), 20] | min %}
+        {% set app = 100 - (updates * 5) - (notifications * 5) - (30 if backup_stale else 0) - zombie_penalty %}
+        {% set app_final = [0, app] | max %}
+
+        {{ ((hw_final * 0.4) + (app_final * 0.6)) | round(0) }}
+
+      attributes:
+        recommendations: >
+          {% set backup_stale = is_state('binary_sensor.backups_stale', 'on') %}
+          {% set updates = states.update | selectattr('state', 'eq', 'on') | list | count %}
+          {% set zombies = states | selectattr('state', 'in', ['unavailable', 'unknown']) | rejectattr('domain', 'in', ['button', 'scene', 'group', 'input_button', 'device_tracker', 'automation', 'script', 'update']) | list | count %}
+          {% set notifications = states.persistent_notification | list | count %}
+          {% set mem = states('sensor.system_monitor_arbeitsspeicherauslastung') | float(0) %}
+          {% set disk = states('sensor.system_monitor_belegter_massenspeicher') | float(0) %}
+          {% set recs = [] %}
+          {% if backup_stale %}{% set recs = recs + ["🚨 Backup is stale! Run a backup now to gain +30 pts."] %}{% endif %}
+          {% if updates > 0 %}{% set recs = recs + ["📦 Install " ~ updates ~ " pending updates to gain +" ~ (updates * 5) ~ " pts."] %}{% endif %}
+          {% if zombies > 10 %}{% set recs = recs + ["🧟 Review " ~ zombies ~ " zombie entities."] %}{% endif %}
+          {% if mem > 85 %}{% set recs = recs + ["🧠 High RAM! Restart Supervisor to clear leak."] %}{% endif %}
+          {% if disk > 85 %}{% set recs = recs + ["💾 Disk nearly full! Clean up old logs."] %}{% endif %}
+          {% if notifications > 0 %}{% set recs = recs + ["🔔 Clear " ~ notifications ~ " persistent notifications."] %}{% endif %}
+          {% if recs | count == 0 %}{{ "✅ Everything looks perfect! No action needed." }}{% else %}{{ recs | join(' ') }}{% endif %}
+        cpu_usage: "{{ states('sensor.system_monitor_YOUR_ID') }}%"
+        memory_usage: "{{ states('sensor.system_monitor_YOUR_ID') }}%"
+        disk_usage: "{{ states('sensor.system_monitor_YOUR_ID') }}%"
+        last_updated: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+      icon: >
+        {% set s = this.state | int(0) %}
+        {% if s >= 90 %} mdi:shield-check
+        {% elif s >= 75 %} mdi:shield-alert
+        {% else %} mdi:shield-remove
+        {% endif %}
