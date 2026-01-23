@@ -61,7 +61,7 @@ To implement the HAGHS reference sensor in your instance, follow these steps:
 
 * **Copy Code**: Download the haghs.yaml file from this repository.
 
-* **Integration**: * If you use a separate template.yaml, paste the content there (excluding the top-level template: key). If you do not use split config, paste the content directly into your configuration.yaml under the template: heading.
+* **Integration**: If you use a separate template.yaml, paste the content there (excluding the top-level template: key). If you do not use split config, paste the content directly into your configuration.yaml under the template: heading.
 
 * **Entity Alignment**: Open the code and update the sensor entity IDs in the **Data Collection** and the **recommendations** section to match your system's specific entity names.
 
