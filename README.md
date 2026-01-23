@@ -4,7 +4,7 @@
 [![HAGHS Standard](https://img.shields.io/badge/HAGHS-Standard-blue?style=for-the-badge&logo=home-assistant&logoColor=white)](https://github.com/d-n91/home-assistant-global-health-score)
 [![Release](https://img.shields.io/badge/Version-1.2.0-green?style=for-the-badge)](https://github.com/d-n91/home-assistant-global-health-score/releases)
 [![My HAGHS Score](https://img.shields.io/badge/HAGHS-94%20%2F%20100-brightgreen?style=for-the-badge&logo=home-assistant)](https://github.com/d-n91/home-assistant-global-health-score)
-[![AI-Powered](https://img.shields.io/badge/Developed%20with-Gemini-blue?style=for-the-badge&logo=google-gemini&logoColor=white)](https://gemini.google.com)
+![AI-Powered](https://img.shields.io/badge/Developed%20with-AI-blue?style=for-the-badge&logo=google-gemini&logoColor=white)
 
 ## 📄 Abstract
 As Home Assistant matures into a mission-critical Smart Home OS, the need for a unified stability metric becomes paramount. **HAGHS** is a logical framework designed to provide an objective **Health Index (0-100)**. It differentiates between transient hardware load and chronic maintenance neglect, providing users with a "North Star" for instance optimization.
@@ -103,4 +103,4 @@ cards:
 ---
 
 ### 🤖 AI Disclosure
-This project was developed in collaboration with **Gemini (Google AI)**. While the architectural concept and "Fair-Play" logic were designed by the project author, the AI assisted in code optimization, standardized naming conventions, and documentation formatting.
+This project was developed in collaboration with **AI**. While the architectural concept and "Fair-Play" logic were designed by me, the AI assisted in code optimization, standardized naming conventions, and documentation formatting.
