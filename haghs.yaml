@@ -33,8 +33,8 @@
           {% set updates = states.update | selectattr('state', 'eq', 'on') | list | count %}
           {% set zombies = states | selectattr('state', 'in', ['unavailable', 'unknown']) | rejectattr('domain', 'in', ['button', 'scene', 'group', 'input_button', 'device_tracker', 'automation', 'script', 'update']) | list | count %}
           {% set notifications = states.persistent_notification | list | count %}
-          {% set mem = states('sensor.system_monitor_arbeitsspeicherauslastung') | float(0) %}
-          {% set disk = states('sensor.system_monitor_belegter_massenspeicher') | float(0) %}
+          {% set mem = states('sensor.system_monitor_YOUR_ID') | float(0) %}
+          {% set disk = states('sensor.system_monitor_YOUR_ID') | float(0) %}
           {% set recs = [] %}
           {% if backup_stale %}{% set recs = recs + ["🚨 Backup is stale! Run a backup now to gain +30 pts."] %}{% endif %}
           {% if updates > 0 %}{% set recs = recs + ["📦 Install " ~ updates ~ " pending updates to gain +" ~ (updates * 5) ~ " pts."] %}{% endif %}
