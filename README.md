@@ -54,6 +54,21 @@ Every HAGHS implementation includes a `recommendations` attribute. This engine p
 
 ---
 
+## 🚀 Deployment & Usage
+To implement the HAGHS reference sensor in your instance, follow these steps:
+
+* **Requirements**: Ensure the System Monitor integration is active with sensors for **CPU**, **RAM**, and **Disk usage** enabled.
+
+* **Copy Code**: Download the haghs.yaml file from this repository.
+
+* **Integration**: * If you use a separate template.yaml, paste the content there (excluding the top-level template: key). If you do not use split config, paste the content directly into your configuration.yaml under the template: heading.
+
+* **Entity Alignment**: Open the code and update the sensor entity IDs in the **Data Collection** and the **recommendations** section to match your system's specific entity names.
+
+* **Reload**: Navigate to **Developer Tools > YAML** and click on **Templates** to initialize the sensor.
+
+---
+
 ## 🚀 Reference Implementation
 A functional Proof of Concept (PoC) using the Home Assistant Template Engine is provided in [`haghs.yaml`](./haghs.yaml).
 
