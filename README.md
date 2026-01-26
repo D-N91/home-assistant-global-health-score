@@ -93,7 +93,10 @@
 
   **C. Log File Access (Optional / Advanced):**
   *Standard users can skip this step.*
-  By default, Home Assistant OS does not create a physical log file to protect SD cards. If you are an advanced user and want to monitor log spam via HAGHS, you must enable file logging via the Terminal CLI (`ha core options --log-file=true`).
+  By default, Home Assistant OS does not create a physical log file to protect SD cards. If you are an advanced user and want to monitor log spam via HAGHS, you must:
+  1. Enable file logging via the Terminal CLI (`ha core options --log-file=true` followed by `ha core restart`).
+  2. **Crucial:** Once restarted, go to the **File Size** integration settings and add the path `/config/home-assistant.log` to be tracked.
+  
   If you skip this, HAGHS will simply ignore the log-size penalty (graceful degradation).
 
   ### 2. Installation
