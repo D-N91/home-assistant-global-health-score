@@ -2,7 +2,7 @@
   **A Technical Specification for System Stability and Hygiene Standardized Monitoring.**
 
   [![HAGHS Standard](https://img.shields.io/badge/HAGHS-Standard-blue?style=for-the-badge&logo=home-assistant&logoColor=white)](https://github.com/d-n91/home-assistant-global-health-score)
-  [![Release](https://img.shields.io/badge/Version-2.1.0-green?style=for-the-badge)](https://github.com/d-n91/home-assistant-global-health-score/releases)
+  [![Release](https://img.shields.io/badge/Version-2.1.1-green?style=for-the-badge)](https://github.com/d-n91/home-assistant-global-health-score/releases)
   [![My HAGHS Score](https://img.shields.io/badge/HAGHS-86%20%2F%20100-brightgreen?style=for-the-badge&logo=home-assistant)](https://github.com/d-n91/home-assistant-global-health-score)
   ![AI-Powered](https://img.shields.io/badge/Developed%20with-AI-blue?style=for-the-badge&logo=google-gemini&logoColor=white)
 
@@ -11,7 +11,7 @@
 
   ---
 
-  ## The HAGHS Standard (v2.1.0)
+  ## The HAGHS Standard (v2.1.1)
 
   The index is calculated via a weighted average of two core pillars, prioritizing long-term software hygiene over temporary hardware fluctuations.
 
