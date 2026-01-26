@@ -11,7 +11,7 @@
 
   ---
 
-  ## The HAGHS Standard (v2.0)
+  ## The HAGHS Standard (v2.0.2)
 
   The index is calculated via a weighted average of two core pillars, prioritizing long-term software hygiene over temporary hardware fluctuations.
 
