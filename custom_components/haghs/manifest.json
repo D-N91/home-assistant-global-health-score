@@ -2,7 +2,7 @@
   "domain": "haghs",
   "name": "Home Assistant Global Health Score",
   "codeowners": ["@d-n91"],
-  "config_flow": false,
+  "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/d-n91/home-assistant-global-health-score",
   "iot_class": "local_polling",
