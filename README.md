@@ -90,6 +90,13 @@ To prevent false positives from sleeping tablets or seasonal devices:
 
 ---
 
+## Roadmap
+* **Custom Thresholds:** Adjust DB limits to your hardware (e.g., for large SSD users).
+* **Time-Trigger:** Configure the score to update every 15/30/60 minutes to save resources.
+* **Beta Support:** Special logic for users running Home Assistant Beta versions (no version lag penalty).
+
+---
+
 ## UI Integration Example
 
 ![HAGHS Dashboard example](https://github.com/user-attachments/assets/c3efb257-7350-4612-b9eb-caebd8e93674)
@@ -118,6 +125,15 @@ cards:
       Entities:** {{ z_list.split(',') | count }} detected *(Check attributes to
       see full list)* {% endif %}
 ```
+---
+
+## FAQ
+
+**Why is my score so low?**
+Check the `recommendations` attribute of your `sensor.system_ha_global_health_score`. It will tell you exactly where the penalties are coming from (e.g., "Delete 45 zombie entities").
+
+**Does this work with Docker?**
+Yes! As long as you expose the system metrics via the `systemmonitor` integration and provide the database size via a sensor.
 
 ---
 
