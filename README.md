@@ -117,8 +117,10 @@ cards:
       red: 0
   - type: markdown
     content: >
-      **🛡️ Advisor Recommendations:** {{
-      state_attr('sensor.system_ha_global_health_score', 'recommendations') }}
+      {% set recs = state_attr('sensor.system_ha_global_health_score',
+      'recommendations') %} **🛡️ Advisor Recommendations:** {{ recs |
+      replace('Zombies detected', 'Zombies detected (Check attributes to see
+      full list)') if recs else 'Your system is in top shape!' }}
 ```
 ---
 
