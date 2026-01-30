@@ -147,7 +147,7 @@ cards:
 ## FAQ
 
 **Why is my score so low?**
-Check the `recommendations` attribute of your `sensor.system_ha_global_health_score`. It will tell you exactly where the penalties are coming from (e.g., "Delete 45 zombie entities").
+Check the UI dashboard card. It will tell you exactly where the penalties are coming from (e.g., "Zombie entities detected").
 
 **Does this work with Docker?**
 Yes! As long as you expose the system metrics via the `systemmonitor` integration and provide the database size via a sensor.
