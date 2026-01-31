@@ -1,4 +1,4 @@
-"""HAGHS Sensor - v2.2-dev Milestone 2 (Grouping & Bulk Helper)."""
+"""HAGHS Sensor - v2.2-dev Final."""
 import logging
 import math
 from datetime import timedelta
@@ -8,11 +8,14 @@ from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers import device_registry as dr, entity_registry as er, entity_platform
+from homeassistant.helpers import (
+    device_registry as dr, 
+    entity_registry as er, 
+    entity_platform
+)
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 
 from .const import (
-    DOMAIN,
     CONF_CPU_SENSOR,
     CONF_RAM_SENSOR,
     CONF_DISK_SENSOR,
@@ -20,23 +23,36 @@ from .const import (
     CONF_CORE_UPDATE_ENTITY,
     CONF_IGNORE_LABEL,
     CONF_UPDATE_INTERVAL,
+    CONF_TEMP_SENSOR,
+    CONF_LATENCY_SENSOR,
     DEFAULT_UPDATE_INTERVAL,
     DEFAULT_NAME,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(
+    hass: HomeAssistant, 
+    entry: ConfigEntry, 
+    async_add_entities: AddEntitiesCallback
+) -> None:
+    """Set up HAGHS from a config entry."""
     interval_min = entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
-    platform = entity_platform.async_get_current_platform()
-    platform.scan_interval = timedelta(minutes=interval_min)
+    
+    # Apply dynamic scan interval
+    current_platform = entity_platform.async_get_current_platform()
+    current_platform.scan_interval = timedelta(minutes=interval_min)
+    
     async_add_entities([HaghsSensor(hass, entry)], update_before_add=True)
 
 class HaghsSensor(SensorEntity):
+    """Representation of the HAGHS Sensor."""
+
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_should_poll = True
 
     def __init__(self, hass, entry):
+        """Initialize the sensor."""
         self.hass = hass
         self.entry = entry
         self._attr_name = DEFAULT_NAME
@@ -44,6 +60,7 @@ class HaghsSensor(SensorEntity):
         self._attr_icon = "mdi:shield-check"
         self._attr_native_unit_of_measurement = " " 
         
+        # Load all IDs consistently from config entry
         config = entry.data
         self.cpu_id = config.get(CONF_CPU_SENSOR)
         self.ram_id = config.get(CONF_RAM_SENSOR)
@@ -51,12 +68,14 @@ class HaghsSensor(SensorEntity):
         self.db_id = config.get(CONF_DB_SENSOR)
         self.core_update_id = config.get(CONF_CORE_UPDATE_ENTITY)
         self.ignore_label = config.get(CONF_IGNORE_LABEL)
+        self.temp_id = config.get(CONF_TEMP_SENSOR)
+        self.latency_id = config.get(CONF_LATENCY_SENSOR)
 
     def update(self) -> None:
+        """Fetch new data and calculate the health score."""
         ent_reg = er.async_get(self.hass)
         dev_reg = dr.async_get(self.hass)
 
-        # Groups for categorized advice
         advice_groups = {
             "Critical": [],
             "Hardware": [],
@@ -71,13 +90,13 @@ class HaghsSensor(SensorEntity):
         elif cpu <= 30: p_cpu = 15
         elif cpu <= 50: p_cpu = 40
         else: p_cpu = 80
-        if p_cpu > 0: advice_groups["Hardware"].append(f"CPU load is high ({cpu:.1f}%)")
+        if p_cpu > 0: advice_groups["Hardware"].append(f"CPU load high ({cpu:.1f}%)")
 
         ram = self._get_float(self.ram_id)
         score_ram = 100
         if ram >= 75: 
             score_ram = max(0, 100 - (ram - 75) * 4)
-            advice_groups["Hardware"].append(f"RAM usage is high ({ram:.1f}%)")
+            advice_groups["Hardware"].append(f"RAM usage high ({ram:.1f}%)")
 
         disk = self._get_float(self.disk_id)
         score_disk = 100
@@ -85,79 +104,73 @@ class HaghsSensor(SensorEntity):
             score_disk = max(0, 100 - (disk - 85) * 6.6)
             advice_groups["Critical"].append(f"Disk space critical ({disk:.1f}%)")
 
-        temp = self._get_float(config.get(CONF_TEMP_SENSOR))
-        p_temp = 0
-        if temp > 65:
-        # Ab 60°C beginnen wir mit Punktabzug (Throttling-Gefahr)
-        p_temp = min(50, (temp - 65) * 2) 
-        if p_temp > 10:
-            advice_groups["Hardware"].append(f"CPU temperature is high ({temp:.1f}°C)")
-
-        # NEU: Latenz Check (IO Wait / Latency)
-        latency = self._get_float(config.get(CONF_LATENCY_SENSOR))
-        p_latency = 0
-        if latency > 100:
-         # Werte über 100ms deuten auf langsame/defekte Speichermedien hin
-        p_latency = min(40, (latency - 100) / 5)
-        if p_latency > 10:
-            advice_groups["Critical"].append(f"Storage latency is high ({latency:.0f}ms) - Check Disk Health!")
-
-        # Dynamische Hardware-Berechnung (Durchschnitt aller vorhandenen Hardware-Werte)
+        # Dynamic Hardware values (weighted calculation)
         hw_values = [100 - p_cpu, score_ram, score_disk]
-        if config.get(CONF_TEMP_SENSOR): hw_values.append(100 - p_temp)
-        if config.get(CONF_LATENCY_SENSOR): hw_values.append(100 - p_latency)
+        
+        if self.temp_id:
+            temp = self._get_float(self.temp_id)
+            p_temp = 0
+            if temp > 65:
+                p_temp = min(50, (temp - 65) * 2)
+                if p_temp > 10: advice_groups["Hardware"].append(f"CPU temp high ({temp:.1f}°C)")
+            hw_values.append(100 - p_temp)
+
+        if self.latency_id:
+            latency = self._get_float(self.latency_id)
+            p_latency = 0
+            if latency > 100:
+                p_latency = min(40, (latency - 100) / 5)
+                if p_latency > 10: advice_groups["Critical"].append(f"Storage latency high ({latency:.0f}ms)")
+            hw_values.append(100 - p_latency)
 
         hardware_final = sum(hw_values) / len(hw_values)
 
         # --- 2. PILLAR: APPLICATION (60%) ---
-        
-        # A. DYNAMIC ZOMBIE RATIO & GROUPING
-        zombies_by_domain = defaultdict(list)
         zombie_list_full = []
         total_eligible = 0
+        zombies_by_domain = defaultdict(list)
+        
+        zombie_domains = ["sensor", "binary_sensor", "switch", "light", "fan", "climate", "media_player", "vacuum", "camera"]
         
         for state in self.hass.states.all():
-            if state.domain not in ["sensor", "binary_sensor", "switch", "light", "fan", "climate", "media_player", "vacuum", "camera"]: continue
+            if state.domain not in zombie_domains: continue
             total_eligible += 1
             if state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
                 if "integration_health" in state.entity_id: continue
                 if not self._is_entity_ignored(state.entity_id, ent_reg, dev_reg):
-                    zombies_by_domain[state.domain].append(state.entity_id.split('.')[-1])
+                    zombies_by_domain[state.domain].append(state.entity_id)
                     zombie_list_full.append(state.entity_id)
 
         zombie_count = len(zombie_list_full)
         p_zombie = min(40, (zombie_count / max(1, total_eligible)) * 100)
-        
         if zombie_count > 0:
-            zombie_summary = ", ".join([f"{count} {dom}" for dom, count in {d: len(z) for d, z in zombies_by_domain.items()}.items()])
-            advice_groups["Hygiene"].append(f"Found {zombie_count} zombies: {zombie_summary}")
+            dom_summary = ", ".join([f"{len(ids)} {dom}" for dom, ids in zombies_by_domain.items()])
+            advice_groups["Hygiene"].append(f"Zombies: {dom_summary}")
 
-        # B. CORE STABILITY
+        # Core Stability Check
         p_core = 0
         for comp in ["recorder", "history"]:
             if comp not in self.hass.config.components:
                 p_core += 20
-                advice_groups["Critical"].append(f"System core '{comp}' is missing!")
+                advice_groups["Critical"].append(f"Core '{comp}' not loaded")
 
-        # C. UPDATES
+        # Updates Check
         update_count = 0
         for state in self.hass.states.all():
             if state.domain == "update" and state.state == "on":
                 if not self._is_entity_ignored(state.entity_id, ent_reg, dev_reg):
                     update_count += 1
-        if update_count > 0:
-            advice_groups["Maintenance"].append(f"{update_count} updates pending")
-
-        # D. DATABASE
+        
         db_mb = self._get_float(self.db_id)
         p_db = 0 if db_mb < 1500 else (10 if db_mb < 3000 else 30)
-        if p_db > 0: advice_groups["Maintenance"].append(f"Database size: {db_mb/1000:.1f} GB")
 
-        # FINAL CALC
         app_final = max(0, 100 - p_zombie - p_core - (min(30, update_count * 5)) - p_db)
-        self._attr_native_value = int(math.floor((hardware_final * 0.4) + (app_final * 0.6)))
+        
+        # Calculate Global Score
+        global_score = math.floor((hardware_final * 0.4) + (app_final * 0.6))
+        self._attr_native_value = int(global_score)
 
-        # Format Recommendations
+        # Format Recommendations Attribute
         formatted_advice = []
         for cat, items in advice_groups.items():
             if items:
@@ -173,6 +186,7 @@ class HaghsSensor(SensorEntity):
         }
 
     def _is_entity_ignored(self, entity_id, ent_reg, dev_reg):
+        """Check if entity or device has the ignore label."""
         entity_entry = ent_reg.async_get(entity_id)
         if not entity_entry: return False
         if self.ignore_label in entity_entry.labels: return True
@@ -182,6 +196,7 @@ class HaghsSensor(SensorEntity):
         return False
 
     def _get_float(self, entity_id):
+        """Helper to get state as float."""
         if not entity_id: return 0.0
         state = self.hass.states.get(entity_id)
         if not state or state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN]: return 0.0
