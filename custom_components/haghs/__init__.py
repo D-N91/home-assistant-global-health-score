@@ -1,9 +1,9 @@
-
 """The HAGHS integration."""
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-PLATFORMS = ["sensor"]
+# NEU: "button" zur Liste hinzugefügt
+PLATFORMS = ["sensor", "button"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HAGHS from a config entry."""
