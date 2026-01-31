@@ -2,16 +2,16 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configure HAGHS",
-        "description": "Select the sensors from System Monitor and File Size integration.",
+        "title": "HAGHS Configuration",
+        "description": "Set up your System Health Score Advisor by selecting the relevant sensors and update frequency.",
         "data": {
-          "cpu_sensor": "Processor Usage (CPU) %",
-          "ram_sensor": "Memory Usage (RAM) %",
-          "disk_sensor": "Disk Usage (Home) %",
-          "db_sensor": "Database Size (MB)",
-          "log_sensor": "Log File Size (MB) - Optional",
-          "core_update_entity": "Core Update Entity",
-          "ignore_label": "Label to ignore (Zombies)"
+          "cpu_sensor": "CPU Load Sensor",
+          "ram_sensor": "RAM Usage Sensor",
+          "disk_sensor": "Disk Storage Sensor",
+          "db_sensor": "Database Size Sensor",
+          "core_update_entity": "HA Core Update Entity",
+          "ignore_label": "Ignore Label",
+          "update_interval": "Update Interval (Minutes)"
         }
       }
     }
