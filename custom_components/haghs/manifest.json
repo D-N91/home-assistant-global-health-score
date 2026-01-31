@@ -7,5 +7,5 @@
   "codeowners": ["@D-N91"],
   "config_flow": true,
   "iot_class": "local_polling",
-  "requirements": [],
+  "requirements": []
 }
