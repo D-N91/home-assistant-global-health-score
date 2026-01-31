@@ -8,5 +8,4 @@
   "config_flow": true,
   "iot_class": "local_polling",
   "requirements": [],
-  "brand": "haghs"
 }
