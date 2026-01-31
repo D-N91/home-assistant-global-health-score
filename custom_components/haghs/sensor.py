@@ -85,7 +85,29 @@ class HaghsSensor(SensorEntity):
             score_disk = max(0, 100 - (disk - 85) * 6.6)
             advice_groups["Critical"].append(f"Disk space critical ({disk:.1f}%)")
 
-        hardware_final = (100 - p_cpu + score_ram + score_disk) / 3
+        temp = self._get_float(config.get(CONF_TEMP_SENSOR))
+        p_temp = 0
+        if temp > 65:
+        # Ab 60°C beginnen wir mit Punktabzug (Throttling-Gefahr)
+        p_temp = min(50, (temp - 65) * 2) 
+        if p_temp > 10:
+            advice_groups["Hardware"].append(f"CPU temperature is high ({temp:.1f}°C)")
+
+        # NEU: Latenz Check (IO Wait / Latency)
+        latency = self._get_float(config.get(CONF_LATENCY_SENSOR))
+        p_latency = 0
+        if latency > 100:
+         # Werte über 100ms deuten auf langsame/defekte Speichermedien hin
+        p_latency = min(40, (latency - 100) / 5)
+        if p_latency > 10:
+            advice_groups["Critical"].append(f"Storage latency is high ({latency:.0f}ms) - Check Disk Health!")
+
+        # Dynamische Hardware-Berechnung (Durchschnitt aller vorhandenen Hardware-Werte)
+        hw_values = [100 - p_cpu, score_ram, score_disk]
+        if config.get(CONF_TEMP_SENSOR): hw_values.append(100 - p_temp)
+        if config.get(CONF_LATENCY_SENSOR): hw_values.append(100 - p_latency)
+
+        hardware_final = sum(hw_values) / len(hw_values)
 
         # --- 2. PILLAR: APPLICATION (60%) ---
         
