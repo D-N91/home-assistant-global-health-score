@@ -10,6 +10,8 @@ CONF_DISK_SENSOR = "disk_sensor"
 CONF_DB_SENSOR = "db_sensor"
 CONF_CORE_UPDATE_ENTITY = "core_update_entity"
 CONF_IGNORE_LABEL = "ignore_label"
+CONF_TEMP_SENSOR = "temp_sensor"
+CONF_LATENCY_SENSOR = "latency_sensor"
 # NEU für v2.2:
 CONF_UPDATE_INTERVAL = "update_interval" 
 
