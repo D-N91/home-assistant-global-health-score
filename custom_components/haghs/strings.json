@@ -6,6 +6,8 @@
         "description": "Set up your System Health Score Advisor by selecting the relevant sensors and update frequency.",
         "data": {
           "cpu_sensor": "CPU Load Sensor",
+          "temp_sensor": "Sensor: CPU Temperature",
+          "latency_sensor": "Sensor: Storage Latency (ms)",
           "ram_sensor": "RAM Usage Sensor",
           "disk_sensor": "Disk Storage Sensor",
           "db_sensor": "Database Size Sensor",
