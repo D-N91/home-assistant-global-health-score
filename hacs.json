@@ -1,6 +1,5 @@
 {
   "name": "HAGHS - Home Assistant Global Health Score",
   "render_readme": true,
-  "category": "integration",
   "homeassistant": "2024.1.0"
 }
