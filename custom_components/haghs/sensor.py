@@ -1,4 +1,4 @@
-"""HAGHS Sensor - v2.2-dev Milestone 1 (No Log)."""
+"""HAGHS Sensor - v2.2-dev Milestone 1 (Dynamic Update)."""
 import logging
 import math
 from datetime import timedelta
@@ -17,16 +17,12 @@ from .const import (
     CONF_DB_SENSOR,
     CONF_CORE_UPDATE_ENTITY,
     CONF_IGNORE_LABEL,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_UPDATE_INTERVAL,
     DEFAULT_NAME,
 )
 
 _LOGGER = logging.getLogger(__name__)
-SCAN_INTERVAL = timedelta(minutes=5)
-
-ZOMBIE_DOMAINS = [
-    "sensor", "binary_sensor", "switch", "light", "fan",
-    "climate", "media_player", "vacuum", "camera"
-]
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -34,12 +30,22 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up HAGHS from a config entry."""
+    # Get interval from entry data, fallback to default
+    interval_min = entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+    
+    # Apply the dynamic scan interval to this platform instance
+    platform = entity_platform.async_get_current_platform()
+    platform.scan_interval = timedelta(minutes=interval_min)
+    
+    _LOGGER.debug("HAGHS setup with update interval: %s minutes", interval_min)
     async_add_entities([HaghsSensor(hass, entry)], update_before_add=True)
+
 
 class HaghsSensor(SensorEntity):
     """Representation of the HAGHS Sensor."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_should_poll = True  # Tell HA to call update() based on scan_interval
 
     def __init__(self, hass, entry):
         """Initialize the sensor."""
@@ -48,8 +54,6 @@ class HaghsSensor(SensorEntity):
         self._attr_name = DEFAULT_NAME
         self._attr_unique_id = f"{entry.entry_id}_score"
         self._attr_icon = "mdi:shield-check"
-        
-        # Neutraler Score-Graph ohne %-Zeichen
         self._attr_native_unit_of_measurement = " " 
         
         config = entry.data
@@ -87,6 +91,7 @@ class HaghsSensor(SensorEntity):
         # --- 2. PILLAR: APPLICATION (60%) ---
         
         # A. DYNAMIC ZOMBIE RATIO
+        # Penalty calculation: $$P_{zombie} = \min(40, \frac{Zombies}{Total} \times 100)$$
         zombie_list = []
         total_eligible_entities = 0
         
@@ -144,7 +149,7 @@ class HaghsSensor(SensorEntity):
         self._attr_extra_state_attributes = {
             "hardware_score": int(hardware_final),
             "application_score": int(app_final),
-            "zombie_ratio": round((zombie_count / max(1, total_eligible_entities)) * 100, 1),
+            "zombie_ratio": f"{round((zombie_count / max(1, total_eligible_entities)) * 100, 1)}%",
             "zombie_entities": ", ".join(zombie_list[:10]) + ("..." if zombie_count > 10 else ""),
             "recommendations": "\n".join(advice) if advice else "✅ System Health Excellent"
         }
