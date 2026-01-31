@@ -31,6 +31,12 @@ class HaghsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Required(CONF_CPU_SENSOR): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor", device_class="power_factor") # Oder passend
             ),
+            vol.Optional(CONF_TEMP_SENSOR): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor", device_class="temperature")
+            ),
+            vol.Optional(CONF_LATENCY_SENSOR): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
+            ),
             vol.Required(CONF_RAM_SENSOR): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor")
             ),
