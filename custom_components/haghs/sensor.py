@@ -42,7 +42,7 @@ async def async_setup_entry(
     interval_min = entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
     current_platform = entity_platform.async_get_current_platform()
     current_platform.scan_interval = timedelta(minutes=interval_min)
-    async_add_entities([HaghsSensor(hass, entry)], update_before_add=True)
+    async_add_entities([HaghsSensor(hass, entry)], update_before_add=False)
 
 class HaghsSensor(SensorEntity):
     """Representation of the HAGHS Sensor."""
