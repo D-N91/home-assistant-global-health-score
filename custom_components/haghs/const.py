@@ -13,7 +13,10 @@ CONF_IGNORE_LABEL = "ignore_label"
 CONF_TEMP_SENSOR = "temp_sensor"
 CONF_LATENCY_SENSOR = "latency_sensor"
 # NEU für v2.2:
-CONF_UPDATE_INTERVAL = "update_interval" 
+CONF_UPDATE_INTERVAL = "update_interval"
+CONF_STORAGE_TYPE = "storage_type"
+STORAGE_TYPE_SD = "sd_card"
+STORAGE_TYPE_SSD = "ssd_nvme"
 
 # Standardwerte
 DEFAULT_UPDATE_INTERVAL = 5
