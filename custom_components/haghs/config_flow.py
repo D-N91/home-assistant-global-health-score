@@ -49,6 +49,15 @@ class HaghsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Required(CONF_CORE_UPDATE_ENTITY): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="update")
             ),
+            vol.Required(CONF_STORAGE_TYPE, default=STORAGE_TYPE_SD): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                options=[
+                    {"value": STORAGE_TYPE_SD, "label": "SD Card / eMMC (Fragile)"},
+                    {"value": STORAGE_TYPE_SSD, "label": "SSD / NVMe / HDD (Robust)"}
+        ],
+        mode=selector.SelectSelectorMode.DROPDOWN
+    )
+),
             vol.Required(CONF_IGNORE_LABEL): selector.LabelSelector(),
             # NEU: Auswahl des Intervalls
             vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.In([1, 2, 5, 10, 30, 60]),
