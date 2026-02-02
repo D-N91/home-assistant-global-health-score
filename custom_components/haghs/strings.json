@@ -13,7 +13,8 @@
           "db_sensor": "Database Size Sensor",
           "core_update_entity": "HA Core Update Entity",
           "ignore_label": "Ignore Label",
-          "update_interval": "Update Interval (Minutes)"
+          "update_interval": "Update Interval (Minutes)",
+          "storage_type": "Storage Hardware Class"
         }
       }
     }
