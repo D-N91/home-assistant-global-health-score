@@ -2,7 +2,7 @@
 **A Technical Specification for System Stability and Hygiene Standardized Monitoring.**
 
 [![HAGHS Standard](https://img.shields.io/badge/HAGHS-Standard-blue?style=for-the-badge&logo=home-assistant&logoColor=white)](https://github.com/d-n91/home-assistant-global-health-score)
-[![Release](https://img.shields.io/badge/Version-2.1.1-green?style=for-the-badge)](https://github.com/d-n91/home-assistant-global-health-score/releases)
+[![Release](https://img.shields.io/badge/Version-2.1.2-green?style=for-the-badge)](https://github.com/d-n91/home-assistant-global-health-score/releases)
  [![My HAGHS Score](https://img.shields.io/badge/HAGHS-98%20%2F%20100-brightgreen?style=for-the-badge&logo=home-assistant)](https://github.com/d-n91/home-assistant-global-health-score)
 ![AI-Powered](https://img.shields.io/badge/Developed%20with-AI-blue?style=for-the-badge&logo=google-gemini&logoColor=white)
 
@@ -11,7 +11,7 @@ As Home Assistant matures into a mission-critical Smart Home OS, the need for a 
 
 ---
 
-## The HAGHS Standard (v2.1.1)
+## The HAGHS Standard (v2.1.2)
 
 The index is calculated via a weighted average of two core pillars, prioritizing long-term software hygiene over temporary hardware fluctuations.
 
@@ -52,9 +52,12 @@ HAGHS is installed as a **HACS Custom Repository** and configured via a **Setup 
 
 **A. System Monitor:**
 Install the **System Monitor** integration. Ensure these specific sensors are **enabled**:
-* `sensor.processor_use` (Percentage %)
-* `sensor.memory_use_percent` (Percentage %)
-* `sensor.disk_use_percent_home` (Percentage %)
+* `sensor.system_monitor_processor_use` (Percentage %)
+* `sensor.system_monitor_memory_usage` (Percentage %)
+* `sensor.system_monitor_disk_usage` (Percentage %)
+  
+   **Note:**
+   The disk usage sensors do not support monitoring folder/directory sizes. Instead, it is only targeting “disks” (more specifically mount points on Linux).
 
 **B. Database Sensor (SQLite / Standard):**
 To allow Home Assistant to see its own database size, add this to your `configuration.yaml` and restart:
