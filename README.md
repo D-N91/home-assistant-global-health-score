@@ -1,4 +1,6 @@
-## HAGHS: Home Assistant Global Health Score
+<img width="460" height="210" alt="logo@2xzugeschnitten" src="https://github.com/user-attachments/assets/63f439f2-58ab-4306-9e34-932b74a30d6d" />
+
+
 **A Technical Specification for System Stability and Hygiene Standardized Monitoring.**
 
 [![HAGHS Standard](https://img.shields.io/badge/HAGHS-Standard-blue?style=for-the-badge&logo=home-assistant&logoColor=white)](https://github.com/d-n91/home-assistant-global-health-score)
