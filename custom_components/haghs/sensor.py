@@ -27,6 +27,12 @@ ICON_HEALTHY = "mdi:heart-pulse"
 ICON_WARNING = "mdi:alert-circle"
 ICON_CRITICAL = "mdi:hospital-box"
 
+# My Home Assistant Redirect Links
+LINK_UPDATES = "https://my.home-assistant.io/redirect/updates/"
+LINK_LOGS = "https://my.home-assistant.io/redirect/logs/"
+LINK_STORAGE = "https://my.home-assistant.io/redirect/system_health/"
+LINK_GENERIC = "https://www.home-assistant.io/docs/"
+
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the HAGHS sensor."""
     async_add_entities([HaghsSensor(hass, config_entry)], True)
@@ -121,15 +127,12 @@ class HaghsSensor(SensorEntity):
         score = 100
         
         # A. PSI (Pressure Stall Information) Check with Fallback
-        # Note: We look for specific system monitor entities. 
-        # If PSI is not available, we fall back to CPU percentage.
-        psi_some_pressure = self.hass.states.get("sensor.system_monitor_processor_pressure") # Example Entity
+        psi_some_pressure = self.hass.states.get("sensor.system_monitor_processor_pressure")
         
         if psi_some_pressure and psi_some_pressure.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
-            # PSI Logic (Future Proofing)
             try:
                 psi_val = float(psi_some_pressure.state)
-                if psi_val > 5.0: # High pressure
+                if psi_val > 5.0:
                     score -= 20
                     self._recommendations.append(f"🔥 System Choking (PSI: {psi_val}). Hardware Limit reached.")
             except ValueError:
@@ -142,7 +145,7 @@ class HaghsSensor(SensorEntity):
                     val = float(cpu.state)
                     if val > 85:
                         score -= 20
-                        self._recommendations.append(f"🔥 High CPU Load: {val}%")
+                        self._recommendations.append(f"🔥 High CPU Load: {val}%.")
                 except ValueError:
                     pass
 
@@ -152,17 +155,15 @@ class HaghsSensor(SensorEntity):
             try:
                 free_gb = float(disk_free.state)
                 
-                # Thresholds based on Storage Type
-                # SD Cards are slower and corrupt easier when full -> Stricter limits
                 limit_critical = 5 if "SSD" in self._storage_type else 8
                 limit_warn = 15 if "SSD" in self._storage_type else 20
                 
                 if free_gb < limit_critical:
                     score -= 50
-                    self._recommendations.append(f"💾 CRITICAL Storage: Only {free_gb}GB free!")
+                    self._recommendations.append(f"💾 [CRITICAL Storage]({LINK_STORAGE}): Only {free_gb}GB free!")
                 elif free_gb < limit_warn:
                     score -= 10
-                    self._recommendations.append(f"⚠️ Low Storage: {free_gb}GB free.")
+                    self._recommendations.append(f"⚠️ [Low Storage]({LINK_STORAGE}): {free_gb}GB free.")
             except ValueError:
                 pass
                 
@@ -177,45 +178,44 @@ class HaghsSensor(SensorEntity):
         if db_size_mb:
             self._attributes["db_size_mb"] = round(db_size_mb, 2)
             
-            # Dynamic Thresholds based on Storage Type
-            # SD Cards handle large DBs poorly
             limit_critical = 2500 if "SSD" in self._storage_type else 1500
             limit_warn = 1000 if "SSD" in self._storage_type else 800
             
             if db_size_mb > limit_critical:
                 score -= 20
-                self._recommendations.append("🗄️ Database Critical. Purge recommended.")
+                self._recommendations.append("🗄️ Database Critical. [Purge recommended](https://www.home-assistant.io/integrations/recorder/#service-recorderpurge).")
             elif db_size_mb > limit_warn:
                 score -= 5
                 self._recommendations.append("Database large. Check recorder settings.")
         else:
              self._attributes["db_size_mb"] = "Unknown"
 
-        # B. Recorder Configuration Audit (New!)
-        # Check if user has optimized their recorder
+        # B. Recorder Configuration Audit (Full Check)
         try:
             instance = recorder.get_instance(self.hass)
-            # Check Commit Interval (SD Card protection)
+            
+            # 1. Commit Interval (SD Card protection)
             if hasattr(instance, 'commit_interval'):
+                # Check only relevant for SD cards
                 if instance.commit_interval < 30 and "SD" in self._storage_type:
-                    self._recommendations.append("⚙️ Recorder: Increase 'commit_interval' to save your SD Card.")
+                    self._recommendations.append("⚙️ Recorder: [Increase commit_interval](https://www.home-assistant.io/integrations/recorder/#commit_interval) to save your SD Card.")
                     score -= 2
             
-            # Check Purge Keep Days (DB Growth protection)
-            # This is tricky as it might not be exposed directly on instance easily, 
-            # checking config directly if possible or skipping if not robust.
-            # Assuming standard config check is complex here, skipping to keep it safe for now.
+            # 2. Purge Keep Days (DB Growth protection)
+            if hasattr(instance, 'keep_days'):
+                 if instance.keep_days > 30:
+                     score -= 5
+                     self._recommendations.append(f"⚙️ Recorder: keep_days is {instance.keep_days} (High). [Lower it](https://www.home-assistant.io/integrations/recorder/#purge_keep_days) to <30.")
+
         except Exception:
-            pass # Fail silently if recorder internals change
+            pass 
 
         # C. Updates & "Ignore" Logic
         pending_updates = []
         for state in self.hass.states.async_all():
             if state.domain == "update" and state.state == STATE_ON:
-                # Check for "haghs_ignore"
-                if "haghs_ignore" in state.entity_id: # Needs HA Label support or naming convention
+                if "haghs_ignore" in state.entity_id:
                     continue
-                # Also check attributes for "skipped" flag if supported
                 if state.attributes.get("skipped") is True:
                     continue
                     
@@ -226,16 +226,16 @@ class HaghsSensor(SensorEntity):
             count = len(pending_updates)
             self._attributes["pending_updates"] = pending_updates
             self._attributes["update_count"] = count
-            score -= min(15, count * 2) # Cap penalty
+            score -= min(15, count * 2) 
             if count > 0:
-                self._recommendations.append(f"📦 {count} Updates pending (See attributes).")
+                self._recommendations.append(f"📦 [{count} Updates pending]({LINK_UPDATES}) (See attributes).")
 
         # D. Log File (Optional)
         if self._log_file_path:
             log_size = await self._get_file_size(self._log_file_path)
             if log_size and log_size > 50:
                 score -= 5
-                self._recommendations.append(f"📜 Log file > 50MB. Check errors.")
+                self._recommendations.append(f"📜 [Log file]({LINK_LOGS}) > 50MB. Check errors.")
 
         # E. Zombies (Capped)
         zombies = []
@@ -262,7 +262,7 @@ class HaghsSensor(SensorEntity):
             if "sqlite://" in db_url:
                 db_path = self.hass.config.path("home-assistant_v2.db")
                 return await self._get_file_size(db_path)
-            return None # SQL fallback for later
+            return None 
         except Exception:
             return None
 
