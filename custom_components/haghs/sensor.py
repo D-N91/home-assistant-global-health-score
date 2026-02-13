@@ -126,9 +126,8 @@ class HaghsSensor(SensorEntity):
     async def _calc_hardware_score(self):
         score = 100
         
-        # A. PSI (Pressure Stall Information) Check with Fallback
+        # A. PSI Logic
         psi_some_pressure = self.hass.states.get("sensor.system_monitor_processor_pressure")
-        
         if psi_some_pressure and psi_some_pressure.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
             try:
                 psi_val = float(psi_some_pressure.state)
@@ -138,7 +137,7 @@ class HaghsSensor(SensorEntity):
             except ValueError:
                 pass
         else:
-            # Fallback: Classic CPU Load
+            # Fallback CPU
             cpu = self.hass.states.get("sensor.processor_use")
             if cpu and cpu.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
                 try:
@@ -154,7 +153,6 @@ class HaghsSensor(SensorEntity):
         if disk_free and disk_free.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
             try:
                 free_gb = float(disk_free.state)
-                
                 limit_critical = 5 if "SSD" in self._storage_type else 8
                 limit_warn = 15 if "SSD" in self._storage_type else 20
                 
@@ -173,54 +171,60 @@ class HaghsSensor(SensorEntity):
     async def _calc_app_score(self):
         score = 100
         
-        # A. Database Size (Zero-YAML)
+        # Helper: Get Total Entities for Dynamic Calc
+        all_states = self.hass.states.async_all()
+        total_entities = len(all_states)
+        self._attributes["total_entities"] = total_entities
+
+        # A. Dynamic Database Limit (The Formula)
+        # Limit = 1000MB + (Entities * 2.5MB)
+        base_limit_mb = 1000 + (total_entities * 2.5)
+        
+        # Hardware Caps (Safety Net)
+        if "SSD" in self._storage_type:
+            # Pro User: Cap at 8GB (8000MB)
+            final_limit_warn = min(base_limit_mb, 8000)
+        else:
+            # SD Card: Cap at 2.5GB (2500MB) to prevent wear-out
+            final_limit_warn = min(base_limit_mb, 2500)
+            
+        final_limit_crit = final_limit_warn * 1.5 # Critical is 50% above warning
+
         db_size_mb = await self._get_database_size()
         if db_size_mb:
             self._attributes["db_size_mb"] = round(db_size_mb, 2)
+            self._attributes["db_limit_dynamic"] = round(final_limit_warn, 2)
             
-            limit_critical = 2500 if "SSD" in self._storage_type else 1500
-            limit_warn = 1000 if "SSD" in self._storage_type else 800
-            
-            if db_size_mb > limit_critical:
+            if db_size_mb > final_limit_crit:
                 score -= 20
-                self._recommendations.append("🗄️ Database Critical. [Purge recommended](https://www.home-assistant.io/integrations/recorder/#service-recorderpurge).")
-            elif db_size_mb > limit_warn:
+                self._recommendations.append(f"🗄️ Database Critical (>{round(final_limit_crit)}MB). [Purge now]({LINK_GENERIC}).")
+            elif db_size_mb > final_limit_warn:
                 score -= 5
-                self._recommendations.append("Database large. Check recorder settings.")
+                self._recommendations.append(f"Database large (>{round(final_limit_warn)}MB). Check recorder.")
         else:
              self._attributes["db_size_mb"] = "Unknown"
 
-        # B. Recorder Configuration Audit (Full Check)
+        # B. Recorder Audit
         try:
             instance = recorder.get_instance(self.hass)
-            
-            # 1. Commit Interval (SD Card protection)
             if hasattr(instance, 'commit_interval'):
-                # Check only relevant for SD cards
                 if instance.commit_interval < 30 and "SD" in self._storage_type:
                     self._recommendations.append("⚙️ Recorder: [Increase commit_interval](https://www.home-assistant.io/integrations/recorder/#commit_interval) to save your SD Card.")
                     score -= 2
-            
-            # 2. Purge Keep Days (DB Growth protection)
             if hasattr(instance, 'keep_days'):
                  if instance.keep_days > 30:
                      score -= 5
-                     self._recommendations.append(f"⚙️ Recorder: keep_days is {instance.keep_days} (High). [Lower it](https://www.home-assistant.io/integrations/recorder/#purge_keep_days) to <30.")
-
+                     self._recommendations.append(f"⚙️ Recorder: keep_days is {instance.keep_days}. [Lower it]({LINK_GENERIC}).")
         except Exception:
             pass 
 
-        # C. Updates & "Ignore" Logic
+        # C. Updates
         pending_updates = []
-        for state in self.hass.states.async_all():
+        for state in all_states:
             if state.domain == "update" and state.state == STATE_ON:
-                if "haghs_ignore" in state.entity_id:
+                if "haghs_ignore" in state.entity_id or state.attributes.get("skipped") is True:
                     continue
-                if state.attributes.get("skipped") is True:
-                    continue
-                    
-                friendly_name = state.attributes.get("friendly_name", state.entity_id)
-                pending_updates.append(friendly_name)
+                pending_updates.append(state.attributes.get("friendly_name", state.entity_id))
 
         if pending_updates:
             count = len(pending_updates)
@@ -230,32 +234,46 @@ class HaghsSensor(SensorEntity):
             if count > 0:
                 self._recommendations.append(f"📦 [{count} Updates pending]({LINK_UPDATES}) (See attributes).")
 
-        # D. Log File (Optional)
+        # D. Log File
         if self._log_file_path:
             log_size = await self._get_file_size(self._log_file_path)
             if log_size and log_size > 50:
                 score -= 5
-                self._recommendations.append(f"📜 [Log file]({LINK_LOGS}) > 50MB. Check errors.")
+                self._recommendations.append(f"📜 [Log file]({LINK_LOGS}) > 50MB.")
 
-        # E. Zombies (Capped)
+        # E. Zombie Ratio (New Logic)
         zombies = []
-        for state in self.hass.states.async_all():
+        for state in all_states:
             if state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
                 if "haghs_ignore" in state.entity_id:
                      continue
                 zombies.append(state.entity_id)
         
+        zombie_count = len(zombies)
         self._attributes["zombie_entities"] = zombies[:20] 
-        self._attributes["zombie_count"] = len(zombies)
+        self._attributes["zombie_count"] = zombie_count
         
-        if len(zombies) > 0:
-            deduction = min(20, len(zombies) * 1)
-            score -= deduction
+        # Calculate Ratio
+        if total_entities > 0:
+            zombie_ratio = (zombie_count / total_entities) * 100
+            self._attributes["zombie_ratio_percent"] = round(zombie_ratio, 2)
+            
+            if zombie_count > 0:
+                # Dynamic Scoring: 2 points penalty per 1% dead entities
+                # Example: 5% dead = -10 points. 10% dead = -20 points.
+                # Cap at 25 points max deduction
+                deduction = min(25, int(zombie_ratio * 2))
+                # Ensure at least 1 point deduction if zombies exist
+                deduction = max(1, deduction)
+                
+                score -= deduction
+                
+                if zombie_ratio > 5:
+                    self._recommendations.append(f"🧟 High Zombie Ratio ({round(zombie_ratio, 1)}%). System unstable.")
 
         return max(0, score)
 
     async def _get_database_size(self):
-        """Get DB size without YAML config."""
         try:
             instance = recorder.get_instance(self.hass)
             db_url = instance.db_url
