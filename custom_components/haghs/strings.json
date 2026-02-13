@@ -2,19 +2,31 @@
   "config": {
     "step": {
       "user": {
-        "title": "HAGHS Configuration",
-        "description": "Set up your System Health Score Advisor by selecting the relevant sensors and update frequency.",
+        "title": "HAGHS Setup (v2.2)",
+        "description": "Welcome to HAGHS! We will now auto-detect your database. Please select your hardware monitoring sensors.",
         "data": {
-          "cpu_sensor": "CPU Load Sensor",
-          "temp_sensor": "Sensor: CPU Temperature",
-          "latency_sensor": "Sensor: Storage Latency (ms)",
-          "ram_sensor": "RAM Usage Sensor",
-          "disk_sensor": "Disk Storage Sensor",
-          "db_sensor": "Database Size Sensor",
-          "core_update_entity": "HA Core Update Entity",
-          "ignore_label": "Ignore Label",
+          "storage_type": "Storage Medium (Influences Disk Thresholds)",
           "update_interval": "Update Interval (Minutes)",
-          "storage_type": "Storage Hardware Class"
+          "log_file": "Log File Path (Optional, e.g. /config/home-assistant.log)"
+        }
+      }
+    },
+    "error": {
+      "invalid_path": "The specified log file path does not exist or is not readable."
+    },
+    "abort": {
+      "already_configured": "HAGHS is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure HAGHS",
+        "description": "Adjust your settings without reinstalling.",
+        "data": {
+          "storage_type": "Storage Medium",
+          "update_interval": "Update Interval (Minutes)",
+          "log_file": "Log File Path (leave empty to disable)"
         }
       }
     }
