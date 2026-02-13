@@ -1,22 +1,32 @@
 """Constants for the HAGHS integration."""
 
 DOMAIN = "haghs"
-DEFAULT_NAME = "HAGHS Advisor"
+VERSION = "2.2.0"
 
-# Technische Keys für die Speicherung
-CONF_CPU_SENSOR = "cpu_sensor"
-CONF_RAM_SENSOR = "ram_sensor"
-CONF_DISK_SENSOR = "disk_sensor"
-CONF_DB_SENSOR = "db_sensor"
-CONF_CORE_UPDATE_ENTITY = "core_update_entity"
-CONF_IGNORE_LABEL = "ignore_label"
-CONF_TEMP_SENSOR = "temp_sensor"
-CONF_LATENCY_SENSOR = "latency_sensor"
-# NEU für v2.2:
+# Configuration Keys
+CONF_SENSORS = "sensors"
 CONF_UPDATE_INTERVAL = "update_interval"
 CONF_STORAGE_TYPE = "storage_type"
-STORAGE_TYPE_SD = "sd_card"
-STORAGE_TYPE_SSD = "ssd_nvme"
+CONF_LOG_FILE = "log_file"
+CONF_IGNORE_LABEL = "haghs_ignore"
 
-# Standardwerte
-DEFAULT_UPDATE_INTERVAL = 5
+# Defaults
+DEFAULT_NAME = "System HA Global Health Score"
+DEFAULT_UPDATE_INTERVAL = 5  # Minutes
+DEFAULT_STORAGE_TYPE = "SSD/NVMe"
+
+# Storage Types for Dropdown
+STORAGE_TYPES = [
+    "SD Card",
+    "SSD/NVMe",
+    "HDD",
+    "Virtual/Container"
+]
+
+# Scoring Constants
+SCORE_PERFECT = 100
+DEDUCTION_CRITICAL_DISK = 50
+DEDUCTION_DB_SIZE = 20
+DEDUCTION_ZOMBIES_MAX = 20
+DEDUCTION_VERSION_LAG = 15
+DEDUCTION_UNSUPPORTED = 100 # Spook/Unsupported logic
