@@ -1,7 +1,6 @@
 """Sensor platform for HAGHS v2.2."""
 import logging
 import os
-import shutil
 from datetime import timedelta, datetime
 
 from homeassistant.components import recorder
@@ -9,9 +8,9 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.const import (
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
+    STATE_ON,
 )
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
@@ -24,13 +23,12 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Icons
 ICON_HEALTHY = "mdi:heart-pulse"
 ICON_WARNING = "mdi:alert-circle"
 ICON_CRITICAL = "mdi:hospital-box"
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    """Set up the HAGHS sensor from a config entry."""
+    """Set up the HAGHS sensor."""
     async_add_entities([HaghsSensor(hass, config_entry)], True)
 
 
@@ -44,83 +42,71 @@ class HaghsSensor(SensorEntity):
         self._attr_name = DEFAULT_NAME
         self._attr_unique_id = f"{config_entry.entry_id}_score"
         
-        # Load Config
-        self._storage_type = config_entry.data.get(CONF_STORAGE_TYPE)
+        # Load Config & Defaults
+        self._storage_type = config_entry.data.get(CONF_STORAGE_TYPE, "SSD/NVMe")
         self._update_interval = config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
         self._log_file_path = config_entry.data.get(CONF_LOG_FILE)
 
-        # State vars
         self._state = None
         self._attributes = {}
         self._recommendations = []
 
     async def async_added_to_hass(self):
         """Handle entity which will be added."""
-        # Use config entry options if available (OptionsFlow support)
         if self._config_entry.options:
             self._update_from_options()
         
-        # Listener for Config Updates
         self.async_on_remove(self._config_entry.add_update_listener(self.async_reload_entry))
-
-        # Schedule updates
         self.async_on_remove(
             async_track_time_interval(
                 self.hass, self.async_update_sensor, timedelta(minutes=self._update_interval)
             )
         )
-        # Initial update
+        # Initial Update
         await self.async_update_sensor()
 
     async def async_reload_entry(self, hass, entry):
-        """Reload when options change."""
+        """Reload options."""
         self._update_from_options()
         await self.async_update_sensor()
 
     def _update_from_options(self):
-        """Update local vars from options."""
+        """Update local vars from options flow."""
         self._storage_type = self._config_entry.options.get(CONF_STORAGE_TYPE, self._config_entry.data.get(CONF_STORAGE_TYPE))
         self._update_interval = self._config_entry.options.get(CONF_UPDATE_INTERVAL, self._config_entry.data.get(CONF_UPDATE_INTERVAL))
         self._log_file_path = self._config_entry.options.get(CONF_LOG_FILE, self._config_entry.data.get(CONF_LOG_FILE))
 
     @property
     def native_value(self):
-        """Return the state of the sensor."""
         return self._state
 
     @property
     def extra_state_attributes(self):
-        """Return the state attributes."""
         return self._attributes
 
     @property
     def icon(self):
-        """Return dynamic icon."""
-        if self._state is None:
-            return ICON_HEALTHY
-        if self._state >= 90:
+        if self._state is None or self._state >= 90:
             return ICON_HEALTHY
         if self._state >= 75:
             return ICON_WARNING
         return ICON_CRITICAL
 
     async def async_update_sensor(self, now=None):
-        """Main Update Logic."""
+        """Main Logic Loop."""
         self._recommendations = []
         
-        # 1. Hardware Score (40%)
+        # 1. Hardware Pillar (PSI, Storage Type Logic)
         hw_score = await self._calc_hardware_score()
         
-        # 2. Application Score (60%)
+        # 2. Application Pillar (Updates, Recorder, Zombies, DB)
         app_score = await self._calc_app_score()
 
-        # Global Formula (v2.2)
-        # Using Floor to be strict
+        # Global Formula
         global_score = int((hw_score * 0.4) + (app_score * 0.6))
         
         self._state = global_score
         
-        # Update Attributes
         self._attributes = {
             "score_hardware": hw_score,
             "score_application": app_score,
@@ -128,40 +114,53 @@ class HaghsSensor(SensorEntity):
             "storage_type": self._storage_type,
             "last_updated": datetime.now().isoformat(),
         }
-        
         self.async_write_ha_state()
 
     # --- PILLAR 1: HARDWARE ---
     async def _calc_hardware_score(self):
         score = 100
-        # NOTE: PSI Integration to follow in next iteration once SystemMonitor exposes it natively.
-        # Fallback to Load/CPU for now.
         
-        # CPU / Load Check
-        cpu_load = self.hass.states.get("sensor.processor_use")
-        if cpu_load and cpu_load.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+        # A. PSI (Pressure Stall Information) Check with Fallback
+        # Note: We look for specific system monitor entities. 
+        # If PSI is not available, we fall back to CPU percentage.
+        psi_some_pressure = self.hass.states.get("sensor.system_monitor_processor_pressure") # Example Entity
+        
+        if psi_some_pressure and psi_some_pressure.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+            # PSI Logic (Future Proofing)
             try:
-                val = float(cpu_load.state)
-                if val > 80:
+                psi_val = float(psi_some_pressure.state)
+                if psi_val > 5.0: # High pressure
                     score -= 20
-                    self._recommendations.append(f"🔥 Critical CPU Load: {val}%")
-                elif val > 40:
-                    score -= 5
+                    self._recommendations.append(f"🔥 System Choking (PSI: {psi_val}). Hardware Limit reached.")
             except ValueError:
                 pass
-        
-        # Disk Check (Absolute Logic)
-        # Try to find common disk sensors or use psutil fallback if we were allowed (we stick to HA sensors for safety)
-        # Looking for 'sensor.disk_free_home' (standard systemmonitor)
+        else:
+            # Fallback: Classic CPU Load
+            cpu = self.hass.states.get("sensor.processor_use")
+            if cpu and cpu.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+                try:
+                    val = float(cpu.state)
+                    if val > 85:
+                        score -= 20
+                        self._recommendations.append(f"🔥 High CPU Load: {val}%")
+                except ValueError:
+                    pass
+
+        # B. Disk Usage (Absolute Thresholds + Storage Type Logic)
         disk_free = self.hass.states.get("sensor.disk_free_home")
         if disk_free and disk_free.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
             try:
                 free_gb = float(disk_free.state)
-                # Logic: Less than 10GB is scary for DB backups
-                if free_gb < 5:
+                
+                # Thresholds based on Storage Type
+                # SD Cards are slower and corrupt easier when full -> Stricter limits
+                limit_critical = 5 if "SSD" in self._storage_type else 8
+                limit_warn = 15 if "SSD" in self._storage_type else 20
+                
+                if free_gb < limit_critical:
                     score -= 50
                     self._recommendations.append(f"💾 CRITICAL Storage: Only {free_gb}GB free!")
-                elif free_gb < 15:
+                elif free_gb < limit_warn:
                     score -= 10
                     self._recommendations.append(f"⚠️ Low Storage: {free_gb}GB free.")
             except ValueError:
@@ -177,73 +176,99 @@ class HaghsSensor(SensorEntity):
         db_size_mb = await self._get_database_size()
         if db_size_mb:
             self._attributes["db_size_mb"] = round(db_size_mb, 2)
-            # Thresholds
-            if db_size_mb > 2500: # 2.5 GB
+            
+            # Dynamic Thresholds based on Storage Type
+            # SD Cards handle large DBs poorly
+            limit_critical = 2500 if "SSD" in self._storage_type else 1500
+            limit_warn = 1000 if "SSD" in self._storage_type else 800
+            
+            if db_size_mb > limit_critical:
                 score -= 20
-                self._recommendations.append("🗄️ Database Critical (>2.5GB). Purge recommended.")
-            elif db_size_mb > 1000: # 1 GB
+                self._recommendations.append("🗄️ Database Critical. Purge recommended.")
+            elif db_size_mb > limit_warn:
                 score -= 5
-                self._recommendations.append("Database large (>1GB). Check recorder settings.")
+                self._recommendations.append("Database large. Check recorder settings.")
         else:
              self._attributes["db_size_mb"] = "Unknown"
 
-        # B. Log File (Optional)
+        # B. Recorder Configuration Audit (New!)
+        # Check if user has optimized their recorder
+        try:
+            instance = recorder.get_instance(self.hass)
+            # Check Commit Interval (SD Card protection)
+            if hasattr(instance, 'commit_interval'):
+                if instance.commit_interval < 30 and "SD" in self._storage_type:
+                    self._recommendations.append("⚙️ Recorder: Increase 'commit_interval' to save your SD Card.")
+                    score -= 2
+            
+            # Check Purge Keep Days (DB Growth protection)
+            # This is tricky as it might not be exposed directly on instance easily, 
+            # checking config directly if possible or skipping if not robust.
+            # Assuming standard config check is complex here, skipping to keep it safe for now.
+        except Exception:
+            pass # Fail silently if recorder internals change
+
+        # C. Updates & "Ignore" Logic
+        pending_updates = []
+        for state in self.hass.states.async_all():
+            if state.domain == "update" and state.state == STATE_ON:
+                # Check for "haghs_ignore"
+                if "haghs_ignore" in state.entity_id: # Needs HA Label support or naming convention
+                    continue
+                # Also check attributes for "skipped" flag if supported
+                if state.attributes.get("skipped") is True:
+                    continue
+                    
+                friendly_name = state.attributes.get("friendly_name", state.entity_id)
+                pending_updates.append(friendly_name)
+
+        if pending_updates:
+            count = len(pending_updates)
+            self._attributes["pending_updates"] = pending_updates
+            self._attributes["update_count"] = count
+            score -= min(15, count * 2) # Cap penalty
+            if count > 0:
+                self._recommendations.append(f"📦 {count} Updates pending (See attributes).")
+
+        # D. Log File (Optional)
         if self._log_file_path:
             log_size = await self._get_file_size(self._log_file_path)
-            if log_size and log_size > 50: # 50 MB
+            if log_size and log_size > 50:
                 score -= 5
-                self._recommendations.append(f"📜 Log file is huge ({log_size}MB). Check for errors.")
+                self._recommendations.append(f"📜 Log file > 50MB. Check errors.")
 
-        # C. Zombies (Capped at 20)
+        # E. Zombies (Capped)
         zombies = []
         for state in self.hass.states.async_all():
             if state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
-                # Check for Ignore Label
-                # (Assuming labels are available on entity - needs HA 2024.4+)
-                # Basic check logic
-                if "haghs_ignore" in state.entity_id: # Quick implementation
+                if "haghs_ignore" in state.entity_id:
                      continue
                 zombies.append(state.entity_id)
         
-        zombie_count = len(zombies)
-        # Cap the list for attributes to prevent bloating state machine
         self._attributes["zombie_entities"] = zombies[:20] 
-        self._attributes["zombie_count"] = zombie_count
+        self._attributes["zombie_count"] = len(zombies)
         
-        if zombie_count > 0:
-            deduction = min(20, zombie_count * 1) # 1 point per zombie, max 20
+        if len(zombies) > 0:
+            deduction = min(20, len(zombies) * 1)
             score -= deduction
-            if zombie_count > 20:
-                 self._recommendations.append(f"🧟 {zombie_count} Zombies detected (List capped).")
 
         return max(0, score)
 
-    # --- HELPERS ---
     async def _get_database_size(self):
         """Get DB size without YAML config."""
         try:
             instance = recorder.get_instance(self.hass)
             db_url = instance.db_url
-            
-            # Case 1: SQLite (Local File)
             if "sqlite://" in db_url:
-                # Usually 'sqlite:////config/home-assistant_v2.db'
-                # We extract the path or assume default
                 db_path = self.hass.config.path("home-assistant_v2.db")
                 return await self._get_file_size(db_path)
-            
-            # Case 2: MariaDB / MySQL (Future: Execute Query)
-            # For v2.2 initial, we skip SQL query to avoid blocking executor without detailed testing
-            return None
-            
-        except Exception as e:
-            _LOGGER.warning(f"Could not determine DB size: {e}")
+            return None # SQL fallback for later
+        except Exception:
             return None
 
     async def _get_file_size(self, path):
-        """Async file size check."""
         def _size():
             if os.path.exists(path):
-                return os.path.getsize(path) / 1024 / 1024 # MB
+                return os.path.getsize(path) / 1024 / 1024
             return None
         return await self.hass.async_add_executor_job(_size)
