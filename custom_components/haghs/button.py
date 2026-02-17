@@ -5,7 +5,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers import entity_registry as er
 
-from .const import DOMAIN, DEFAULT_NAME
+from .const import DOMAIN
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -18,19 +18,21 @@ async def async_setup_entry(
 class HaghsRecalculateButton(ButtonEntity):
     """Button to force a HAGHS score recalculation."""
 
+    _attr_has_entity_name = True
+    _attr_translation_key = "recalculate"
+    _attr_icon = "mdi:refresh"
+
     def __init__(self, entry):
         """Initialize the button."""
         self.entry = entry
-        self._attr_name = f"Recalculate {DEFAULT_NAME}"
         self._attr_unique_id = f"{entry.entry_id}_recalculate_button"
-        self._attr_icon = "mdi:refresh"
 
     async def async_press(self) -> None:
         """Handle the button press."""
-        # Sucht den HAGHS Sensor und erzwingt ein Update
         ent_reg = er.async_get(self.hass)
-        # Wir suchen die Entity-ID des Sensors basierend auf der Unique ID
+        
         sensor_unique_id = f"{self.entry.entry_id}_score"
+        
         entity_id = ent_reg.async_get_entity_id("sensor", DOMAIN, sensor_unique_id)
         
         if entity_id:
