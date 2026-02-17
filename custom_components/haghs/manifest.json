@@ -1,7 +1,7 @@
 {
   "domain": "haghs",
   "name": "Home Assistant Global Health Score",
-  "after_dependencies": ["recorder", "system_monitor"],
+  "after_dependencies": ["recorder", "systemmonitor"],
   "codeowners": ["@d-n91"],
   "config_flow": true,
   "documentation": "https://github.com/d-n91/home-assistant-global-health-score",
