@@ -3,9 +3,9 @@
 
 **A Technical Specification for System Stability and Hygiene Standardized Monitoring.**
 
-[![HAGHS Standard](https://img.shields.io/badge/HAGHS-Standard-blue?style=for-the-badge&logo=home-assistant&logoColor=white)](https://github.com/d-n91/home-assistant-global-health-score)
-[![Release](https://img.shields.io/badge/Version-2.1.2-green?style=for-the-badge)](https://github.com/d-n91/home-assistant-global-health-score/releases)
- [![My HAGHS Score](https://img.shields.io/badge/HAGHS-98%20%2F%20100-brightgreen?style=for-the-badge&logo=home-assistant)](https://github.com/d-n91/home-assistant-global-health-score)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![GitHub Release](https://img.shields.io/github/v/release/d-n91/home-assistant-global-health-score?style=for-the-badge&color=green)](https://github.com/d-n91/home-assistant-global-health-score/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/d-n91/home-assistant-global-health-score?style=for-the-badge&color=yellow)](https://github.com/d-n91/home-assistant-global-health-score/stargazers)
 ![AI-Powered](https://img.shields.io/badge/Developed%20with-AI-blue?style=for-the-badge&logo=google-gemini&logoColor=white)
 
 ## Abstract
