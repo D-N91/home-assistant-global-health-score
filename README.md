@@ -142,7 +142,7 @@ cards:
       <details> <summary><b>Zombie Domains: {{ grouped_zombies |
       length}}</b></summary> {% for d in grouped_zombies %}<br>  <details>
       <summary>{{- d[0] | title }}: <b>{{ d[1] | count }}</b></summary> {% for i
-      in d[1] -%} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • {{ i.name }}: <b>{{ i.state
+      in d[1] -%} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • {{ device_attr(i.entity_id, 'name') | default('unknown device', true) }} ({{ i.name }}): <b>{{ i.state
       }}</b><br>  {% endfor %}  </details>  {% endfor %} </details>  {% else %} 
       ✅ **No zombie entities detected.** {% endif %}
 
