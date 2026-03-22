@@ -62,19 +62,24 @@ Install the **System Monitor** integration. Ensure these specific sensors are **
    The disk usage sensors do not support monitoring folder/directory sizes. Instead, it is only targeting “disks” (more specifically mount points on Linux).
 
 **B. Database Sensor (SQLite / Standard):**
-To allow Home Assistant to see its own database size, add this to your `configuration.yaml` and restart:
+To allow Home Assistant to see its own database size:
+1.  Go to **Settings > Integrations > Add Integration** and search for **SQL**.
+2.  Set the preferred name, **leave "Database URL" empty**, and press "Submit".
+3.  Set the following options:
+    * Select query: `SELECT SUM(pgsize) AS size FROM dbstat`
+    * Column: `size`
+4.  Set the following advanced options:
+    * Unit of measurement: `B`
+    * Device class: `Data Size`
+    * State class: `Measurement`
+5.  Press submit.
+6.  Open the status of the sensor that you have created, [and press the cog icon on the top-right corner to customize it](https://www.home-assistant.io/docs/configuration/customizing-devices/).
+7.  Change "Unit of measurement" to `MB`
+> [!IMPORTANT]  
+> Do **NOT** change the Unit of measurement of the **SQL integration entry**. It must be set to `B`, as that is what SQLite reports. Due to current limitations of the integration, the unit of measurement has to be **customized** to MB.
 
-```yaml
-homeassistant:
-  allowlist_external_dirs:
-    - "/config"
-```
-
-**After the restart:**
-1.  Go to **Settings > Integrations > Add Integration**.
-2.  Search for **File Size** and set the path to: `/config/home-assistant_v2.db`.
-
-*Note: For MariaDB/Postgres, create a SQL sensor that returns the size in MB.*
+> [!NOTE]
+> For MariaDB/Postgres, create a SQL sensor as described above, changing the "Database URL", "Select query", and "Unit of measurement" according to your database.
 
 ### 2. Installation & Setup
 1.  Add this repo to **HACS** (Custom Repository, Category: Integration).
