@@ -1,9 +1,11 @@
-## HAGHS: Home Assistant Global Health Score
+<img width="460" height="210" alt="logo@2xzugeschnitten" src="https://github.com/user-attachments/assets/63f439f2-58ab-4306-9e34-932b74a30d6d" />
+
+
 **A Technical Specification for System Stability and Hygiene Standardized Monitoring.**
 
-[![HAGHS Standard](https://img.shields.io/badge/HAGHS-Standard-blue?style=for-the-badge&logo=home-assistant&logoColor=white)](https://github.com/d-n91/home-assistant-global-health-score)
-[![Release](https://img.shields.io/badge/Version-2.1.1-green?style=for-the-badge)](https://github.com/d-n91/home-assistant-global-health-score/releases)
- [![My HAGHS Score](https://img.shields.io/badge/HAGHS-86%20%2F%20100-brightgreen?style=for-the-badge&logo=home-assistant)](https://github.com/d-n91/home-assistant-global-health-score)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![GitHub Release](https://img.shields.io/github/v/release/d-n91/home-assistant-global-health-score?style=for-the-badge&color=green)](https://github.com/d-n91/home-assistant-global-health-score/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/d-n91/home-assistant-global-health-score?style=for-the-badge&color=yellow)](https://github.com/d-n91/home-assistant-global-health-score/stargazers)
 ![AI-Powered](https://img.shields.io/badge/Developed%20with-AI-blue?style=for-the-badge&logo=google-gemini&logoColor=white)
 
 ## Abstract
@@ -11,7 +13,7 @@ As Home Assistant matures into a mission-critical Smart Home OS, the need for a 
 
 ---
 
-## The HAGHS Standard (v2.1.1)
+## The HAGHS Standard (v2.1.2)
 
 The index is calculated via a weighted average of two core pillars, prioritizing long-term software hygiene over temporary hardware fluctuations.
 
@@ -52,9 +54,12 @@ HAGHS is installed as a **HACS Custom Repository** and configured via a **Setup 
 
 **A. System Monitor:**
 Install the **System Monitor** integration. Ensure these specific sensors are **enabled**:
-* `sensor.processor_use` (Percentage %)
-* `sensor.memory_use_percent` (Percentage %)
-* `sensor.disk_use_percent_home` (Percentage %)
+* `sensor.system_monitor_processor_use` (Percentage %)
+* `sensor.system_monitor_memory_usage` (Percentage %)
+* `sensor.system_monitor_disk_usage` (Percentage %)
+  
+   **Note:**
+   The disk usage sensors do not support monitoring folder/directory sizes. Instead, it is only targeting “disks” (more specifically mount points on Linux).
 
 **B. Database Sensor (SQLite / Standard):**
 To allow Home Assistant to see its own database size, add this to your `configuration.yaml` and restart:
@@ -99,8 +104,7 @@ To prevent false positives from sleeping tablets or seasonal devices:
 
 ## UI Integration Example
 
-![HAGHS Dashboard example](https://github.com/user-attachments/assets/c3efb257-7350-4612-b9eb-caebd8e93674)
-
+![NEW HAGHS Dashboard card](https://github.com/user-attachments/assets/ac4dbcf8-94b3-40a5-8835-e81853aa8c9f)
 
 Recommended configuration for a clean frontend display:
 
@@ -117,15 +121,38 @@ cards:
       red: 0
   - type: markdown
     content: >
-      **🛡️ Advisor Recommendations:** {{
-      state_attr('sensor.system_ha_global_health_score', 'recommendations') }}
+      {% set entity_id = 'sensor.system_ha_global_health_score' %}  {% set
+      recommendations = state_attr(entity_id, 'recommendations') %}  {% set
+      z_raw = state_attr(entity_id, 'zombie_entities') | default('', true) %}
+
+      ### 🛡️ Advisor Recommendations  {% if recommendations not in [none,
+      'unknown', 'unavailable', 'none'] %}
+        {{ recommendations }}
+      {% elif states(entity_id) in ['unavailable', 'unknown'] %}
+        ⚠️ **Error:** Health Advisor sensor is offline.
+      {% else %}
+        ✅ System healthy. No recommendations.
+      {% endif %}
+
+      ---
+
+      {% if z_raw not in ['None', '', none] %}
+        {% set z_list = z_raw.split(',') | map('trim') | select('search', '\\.') | list %}
+        {% set grouped_zombies = expand(z_list) | groupby('domain') %}
+      <details> <summary><b>Zombie Domains: {{ grouped_zombies |
+      length}}</b></summary> {% for d in grouped_zombies %}<br>  <details>
+      <summary>{{- d[0] | title }}: <b>{{ d[1] | count }}</b></summary> {% for i
+      in d[1] -%} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • {{ device_attr(i.entity_id, 'name') | default('unknown device', true) }} ({{ i.name }}): <b>{{ i.state
+      }}</b><br>  {% endfor %}  </details>  {% endfor %} </details>  {% else %} 
+      ✅ **No zombie entities detected.** {% endif %}
+
 ```
 ---
 
 ## FAQ
 
 **Why is my score so low?**
-Check the `recommendations` attribute of your `sensor.system_ha_global_health_score`. It will tell you exactly where the penalties are coming from (e.g., "Delete 45 zombie entities").
+Check the UI dashboard card. It will tell you exactly where the penalties are coming from (e.g., "Zombie entities detected").
 
 **Does this work with Docker?**
 Yes! As long as you expose the system metrics via the `systemmonitor` integration and provide the database size via a sensor.
