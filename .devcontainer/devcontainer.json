@@ -1,0 +1,17 @@
+{
+  "name": "haghs-dev-environment",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "pip install homeassistant && mkdir -p /workspaces/hass_config/custom_components && ln -sf /workspaces/${localWorkspaceFolderBasename}/custom_components/haghs /workspaces/hass_config/custom_components/haghs",
+  "forwardPorts": [8123],
+  "containerEnv": {
+    "HAGHS_MOCK_HARDWARE": "1"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  }
+}
