@@ -13,7 +13,7 @@ As Home Assistant matures into a mission-critical Smart Home OS, the need for a 
 
 ---
 
-## The HAGHS Standard (v2.2)
+## The HAGHS Standard (v2.2.1)
 
 The index is calculated via a weighted average of two core pillars, prioritizing long-term software hygiene over temporary hardware fluctuations.
 
@@ -376,6 +376,9 @@ HAGHS uses a safety net: if any pillar calculation times out or throws an error,
 ---
 
 ## Changelog
+
+### [v2.2.1] - 2026-03-29
+* **Bugfix:** Fixed absurd percentage values in hardware recommendations (e.g. "Memory pressure is impacting score (5698.1%)") when a manually configured CPU/RAM sensor reports absolute values (MB/MHz) instead of percent. Values above 100% are now clamped and a warning is logged to help users select the correct sensor.
 
 ### [v2.2.0] - 2026-03-29
 * **Architecture:** Full async migration to `DataUpdateCoordinator` with safety-net timeouts.
