@@ -40,18 +40,5 @@
         }
       }
     }
-  },
-  "recommendations": {
-    "cpu_load": "\u26a1 Optimization: CPU load is impacting score ({cpu_pct:.1f}%).",
-    "ram_pressure": "\u26a1 Optimization: Memory pressure is impacting score ({ram_pct:.1f}%).",
-    "io_pressure": "\u26a1 Optimization: I/O pressure is impacting score ({io_pct:.1f}%).",
-    "disk_sd_low": "\u26a0\ufe0f Disk Space: Only {free_gb:.1f} GB free on {storage_type}!",
-    "disk_ssd_low": "\u26a0\ufe0f Disk Space: Less than 10% free ({free_gb:.1f} GB)!",
-    "db_over_limit": "\ud83d\uddc4\ufe0f Database: DB ({db_gb:.1f} GB) exceeds dynamic limit ({limit_gb:.1f} GB).",
-    "backup_stale": "\ud83d\udea8 Security: Stale backup detected!",
-    "updates_pending": "\ud83d\udce6 Maintenance: {count} update(s) pending.",
-    "zombies": "\ud83e\udddf Hygiene: {count} zombie(s) detected.",
-    "core_lag": "\ud83d\udc74 Legacy: Core version is >3 months old.",
-    "all_clear": "\u2705 System optimized"
   }
 }
