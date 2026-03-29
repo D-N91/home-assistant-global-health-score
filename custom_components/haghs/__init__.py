@@ -300,6 +300,14 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             p_cpu = self._psi_cpu_penalty(cpu)
         else:
             cpu = self._get_float(self.cpu_id)
+            if cpu > 100:
+                _LOGGER.warning(
+                    "HAGHS: CPU sensor '%s' returned %.1f — expected 0-100%%. "
+                    "Please select a sensor that reports CPU usage in percent",
+                    self.cpu_id,
+                    cpu,
+                )
+                cpu = min(cpu, 100.0)
             p_cpu = self._classic_cpu_penalty(cpu)
         score_cpu = 100 - p_cpu
 
@@ -309,6 +317,14 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             p_ram = self._psi_memory_penalty(ram)
         else:
             ram = self._get_float(self.ram_id)
+            if ram > 100:
+                _LOGGER.warning(
+                    "HAGHS: RAM sensor '%s' returned %.1f — expected 0-100%%. "
+                    "Please select a sensor that reports memory usage in percent",
+                    self.ram_id,
+                    ram,
+                )
+                ram = min(ram, 100.0)
             p_ram = self._classic_ram_penalty(ram)
         score_ram = 100 - p_ram
 
