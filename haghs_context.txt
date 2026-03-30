@@ -1,0 +1,1305 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.devcontainer/
+  devcontainer.json
+.github/
+  workflows/
+    hacs_validation.yaml
+    hassfest.yaml
+    notebooklm.yaml
+custom_components/
+  haghs/
+    __init__.py
+    button.py
+    config_flow.py
+    const.py
+    manifest.json
+    sensor.py
+    strings.json
+hacs.json
+LICENSE
+README.md
+README2.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".devcontainer/devcontainer.json">
+{
+  "name": "haghs-dev-environment",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "pip install homeassistant && mkdir -p /workspaces/hass_config/custom_components && ln -sf /workspaces/${localWorkspaceFolderBasename}/custom_components/haghs /workspaces/hass_config/custom_components/haghs",
+  "forwardPorts": [8123],
+  "containerEnv": {
+    "HAGHS_MOCK_HARDWARE": "1"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  }
+}
+</file>
+
+<file path=".github/workflows/hacs_validation.yaml">
+name: Validate HACS
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v3"
+      - name: HACS Action
+        uses: "hacs/action@main"
+        with:
+          category: "integration"
+          ignore: brands
+</file>
+
+<file path=".github/workflows/hassfest.yaml">
+name: Hassfest
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  hassfest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: home-assistant/actions/hassfest@master
+</file>
+
+<file path=".github/workflows/notebooklm.yaml">
+name: Generate NotebookLM Context
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bundle repo with repomix
+        run: |
+          mkdir public
+          npx repomix --output public/haghs_context.txt
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+</file>
+
+<file path="custom_components/haghs/__init__.py">
+"""The HAGHS integration."""
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
+
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BUTTON]
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up HAGHS from a config entry."""
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    return True
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+</file>
+
+<file path="custom_components/haghs/button.py">
+"""Button platform for HAGHS."""
+from homeassistant.components.button import ButtonEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers import entity_registry as er
+
+from .const import DOMAIN
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up the HAGHS button platform."""
+    async_add_entities([HaghsRecalculateButton(entry)], update_before_add=True)
+
+class HaghsRecalculateButton(ButtonEntity):
+    """Button to force a HAGHS score recalculation."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "recalculate"
+    _attr_icon = "mdi:refresh"
+
+    def __init__(self, entry):
+        """Initialize the button."""
+        self.entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_recalculate_button"
+
+    async def async_press(self) -> None:
+        """Handle the button press."""
+        ent_reg = er.async_get(self.hass)
+        
+        sensor_unique_id = f"{self.entry.entry_id}_score"
+        
+        entity_id = ent_reg.async_get_entity_id("sensor", DOMAIN, sensor_unique_id)
+        
+        if entity_id:
+            await self.hass.services.async_call(
+                "homeassistant",
+                "update_entity",
+                {"entity_id": entity_id},
+                blocking=True,
+            )
+</file>
+
+<file path="custom_components/haghs/config_flow.py">
+import voluptuous as vol
+from homeassistant import config_entries
+from homeassistant.core import callback
+from homeassistant.helpers import selector
+import os
+
+from .const import (
+    DOMAIN,
+    CONF_UPDATE_INTERVAL,
+    CONF_STORAGE_TYPE,
+    CONF_LOG_FILE,
+    DEFAULT_UPDATE_INTERVAL,
+    DEFAULT_STORAGE_TYPE,
+    STORAGE_TYPES,
+)
+
+class HaghsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for HAGHS."""
+
+    VERSION = 1
+
+    async def async_step_user(self, user_input=None):
+        """Handle the initial step."""
+        errors = {}
+
+        if user_input is not None:
+            # Validate Log File if provided
+            log_path = user_input.get(CONF_LOG_FILE)
+            if log_path and not os.path.isfile(log_path):
+                # Check if we can access it (might be permission issue, but simple check first)
+                if not os.path.exists(log_path):
+                     errors["base"] = "invalid_path"
+            
+            if not errors:
+                return self.async_create_entry(title="Global Health Score", data=user_input)
+
+        # Schema for Setup
+        data_schema = vol.Schema({
+            vol.Required(CONF_STORAGE_TYPE, default=DEFAULT_STORAGE_TYPE): selector.SelectSelector(
+                selector.SelectSelectorConfig(options=STORAGE_TYPES),
+            ),
+            vol.Required(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): int,
+            vol.Optional(CONF_LOG_FILE): str,
+        })
+
+        return self.async_show_form(
+            step_id="user", data_schema=data_schema, errors=errors
+        )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return HaghsOptionsFlowHandler(config_entry)
+
+
+class HaghsOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle options for HAGHS (Re-Configure)."""
+
+    def __init__(self, config_entry):
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(self, user_input=None):
+        """Manage the options."""
+        errors = {}
+
+        if user_input is not None:
+            # Update the entry
+            return self.async_create_entry(title="", data=user_input)
+
+        # Load current values
+        current_storage = self.config_entry.options.get(CONF_STORAGE_TYPE, self.config_entry.data.get(CONF_STORAGE_TYPE, DEFAULT_STORAGE_TYPE))
+        current_interval = self.config_entry.options.get(CONF_UPDATE_INTERVAL, self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
+        current_log = self.config_entry.options.get(CONF_LOG_FILE, self.config_entry.data.get(CONF_LOG_FILE, ""))
+
+        options_schema = vol.Schema({
+            vol.Required(CONF_STORAGE_TYPE, default=current_storage): selector.SelectSelector(
+                selector.SelectSelectorConfig(options=STORAGE_TYPES),
+            ),
+            vol.Required(CONF_UPDATE_INTERVAL, default=current_interval): int,
+            vol.Optional(CONF_LOG_FILE, description={"suggested_value": current_log}): str,
+        })
+
+        return self.async_show_form(
+            step_id="init", data_schema=options_schema, errors=errors
+        )
+</file>
+
+<file path="custom_components/haghs/const.py">
+"""Constants for the HAGHS integration."""
+
+DOMAIN = "haghs"
+VERSION = "2.2.0"
+
+# Configuration Keys
+CONF_SENSORS = "sensors"
+CONF_UPDATE_INTERVAL = "update_interval"
+CONF_STORAGE_TYPE = "storage_type"
+CONF_LOG_FILE = "log_file"
+CONF_IGNORE_LABEL = "haghs_ignore"
+
+# Defaults
+DEFAULT_NAME = "System HA Global Health Score"
+DEFAULT_UPDATE_INTERVAL = 5  # Minutes
+DEFAULT_STORAGE_TYPE = "SSD/NVMe"
+
+# Storage Types for Dropdown
+STORAGE_TYPES = [
+    "SD Card",
+    "SSD/NVMe",
+    "HDD",
+    "Virtual/Container"
+]
+
+# Scoring Constants
+SCORE_PERFECT = 100
+DEDUCTION_CRITICAL_DISK = 50
+DEDUCTION_DB_SIZE = 20
+DEDUCTION_ZOMBIES_MAX = 20
+DEDUCTION_VERSION_LAG = 15
+DEDUCTION_UNSUPPORTED = 100 # Spook/Unsupported logic
+</file>
+
+<file path="custom_components/haghs/manifest.json">
+{
+  "domain": "haghs",
+  "name": "Home Assistant Global Health Score",
+  "after_dependencies": ["recorder", "systemmonitor"],
+  "codeowners": ["@d-n91"],
+  "config_flow": true,
+  "documentation": "https://github.com/d-n91/home-assistant-global-health-score",
+  "integration_type": "service",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/d-n91/home-assistant-global-health-score/issues",
+  "requirements": [],
+  "version": "2.2.0"
+}
+</file>
+
+<file path="custom_components/haghs/sensor.py">
+"""Platform for sensor integration."""
+from __future__ import annotations
+
+import logging
+from datetime import timedelta
+import os
+
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorStateClass,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import (
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
+    PERCENTAGE,
+)
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_time_interval
+
+from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
+
+ICON_OK = "mdi:check-circle"
+ICON_WARN = "mdi:alert-circle"
+ICON_CRIT = "mdi:alert-octagon"
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up the sensor platform."""
+    async_add_entities([HaghsSensor(hass, entry)], update_before_add=True)
+
+
+class HaghsSensor(SensorEntity):
+    """Representation of the HAGHS Sensor."""
+
+    _attr_name = "HAGHS Score"
+    _attr_icon = "mdi:heart-pulse"
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_has_entity_name = True
+
+    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry):
+        """Initialize the sensor."""
+        self.hass = hass
+        self._config_entry = config_entry
+        self._attr_unique_id = f"{config_entry.entry_id}_score"
+        
+        # Config Data
+        self._storage_type = config_entry.data.get("storage_type", "SD Card")
+        self._update_interval = config_entry.data.get("update_interval", 60)
+        self._log_file_path = config_entry.data.get("log_file", "")
+
+        # Internal State
+        self._score = 100
+        self._recommendations = []
+        self._unsub_timer = None
+
+        # Recorder Purge Service (Specific anchor)
+        self.LINK_DB = "https://www.home-assistant.io/integrations/recorder/#service-recorderpurge"
+        # Recorder Integration (General settings)
+        self.LINK_RECORDER = "https://www.home-assistant.io/integrations/recorder/"
+        # Troubleshooting (Unavailable entities)
+        self.LINK_ZOMBIES = "https://www.home-assistant.io/docs/configuration/troubleshooting/"
+        # Common Tasks OS (Moving data disk / freeing space) - Best fallback for storage issues
+        self.LINK_STORAGE = "https://www.home-assistant.io/common-tasks/os/"
+
+    async def async_added_to_hass(self):
+        """Handle when entity is added to Home Assistant."""
+        # Set Update Interval
+        interval = timedelta(minutes=int(self._update_interval))
+        self._unsub_timer = async_track_time_interval(
+            self.hass, self._update_logic, interval
+        )
+        
+        # Initial Update
+        await self._update_logic(None)
+
+    async def async_will_remove_from_hass(self):
+        """Clean up."""
+        if self._unsub_timer:
+            self._unsub_timer()
+
+    async def _update_logic(self, _):
+        """Main logic wrapper."""
+        self._recommendations = []
+        
+        # Calc Sub-Scores
+        hw_score = await self._calc_hardware_score()
+        sw_score = await self._calc_software_score()
+        
+        # Final Score Calculation
+        final_score = min(hw_score, sw_score)
+        
+        self._score = max(0, min(100, final_score))
+        
+        # Update Attributes
+        self._attr_extra_state_attributes = {
+            "hardware_score": hw_score,
+            "software_score": sw_score,
+            "recommendations": self._recommendations,
+            "storage_type": self._storage_type,
+            "version": "2.2.0"
+        }
+        
+        # Icon Logic
+        if self._score >= 80:
+            self._attr_icon = ICON_OK
+        elif self._score >= 50:
+            self._attr_icon = ICON_WARN
+        else:
+            self._attr_icon = ICON_CRIT
+            
+        self.async_write_ha_state()
+
+    # --- PILLAR 1: HARDWARE (HYBRID: PSI + CPU) ---
+    async def _calc_hardware_score(self):
+        score = 100
+        psi_available = False
+        
+        # A. PSI (Pressure Stall Information)
+        psi_some_pressure = self.hass.states.get("sensor.system_monitor_processor_pressure")
+        if psi_some_pressure and psi_some_pressure.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+            psi_available = True
+            try:
+                psi_val = float(psi_some_pressure.state)
+                if psi_val > 5.0:
+                    score -= 15
+                    self._recommendations.append(f"🔥 System Choking (PSI: {psi_val}). Processes are waiting.")
+                elif psi_val > 2.0:
+                    score -= 5
+            except ValueError:
+                pass
+
+        # B. CPU Load
+        cpu = self.hass.states.get("sensor.processor_use")
+        if cpu and cpu.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+            try:
+                val = float(cpu.state)
+                if psi_available:
+                    # Hybrid Mode: High CPU is less critical if PSI is low
+                    if val > 90:
+                        score -= 5
+                        self._recommendations.append(f"⚙️ High CPU ({val}%), but responsive.")
+                else:
+                    # Legacy Mode
+                    if val > 85:
+                        score -= 20
+                        self._recommendations.append(f"🔥 High CPU Load: {val}%.")
+            except ValueError:
+                pass
+
+        # C. Disk Usage
+        disk_free = self.hass.states.get("sensor.disk_free_home")
+        if disk_free and disk_free.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+            try:
+                free_gb = float(disk_free.state)
+                # Stricter limits for SD Cards
+                limit_critical = 5 if "SSD" in self._storage_type else 8
+                limit_warn = 15 if "SSD" in self._storage_type else 20
+                
+                if free_gb < limit_critical:
+                    score -= 50
+                    self._recommendations.append(f"💾 [CRITICAL Storage]({self.LINK_STORAGE}): Only {free_gb}GB free!")
+                elif free_gb < limit_warn:
+                    score -= 10
+                    self._recommendations.append(f"⚠️ [Low Storage]({self.LINK_STORAGE}): {free_gb}GB free.")
+            except ValueError:
+                pass
+                
+        return max(0, score)
+
+    # --- PILLAR 2: SOFTWARE (Hygiene) ---
+    async def _calc_software_score(self):
+        score = 100
+        
+        # A. Database Size
+        db_size = self.hass.states.get("sensor.recorder_db_size")
+        if db_size and db_size.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+            try:
+                size_mb = float(db_size.state)
+                if size_mb > 3000: # 3GB
+                    score -= 15
+                    self._recommendations.append(f"🗄️ [Huge Database]({self.LINK_DB}): {size_mb}MB.")
+                elif size_mb > 1500:
+                    score -= 5
+                    self._recommendations.append(f"ℹ️ [Check Recorder]({self.LINK_RECORDER}): DB is {size_mb}MB.")
+            except ValueError:
+                pass
+
+        # B. Zombies (Unavailable Entities)
+        zombies = []
+        for state in self.hass.states.async_all():
+            if state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+                if "update." in state.entity_id: 
+                    continue
+                zombies.append(state.entity_id)
+        
+        zombie_count = len(zombies)
+        
+        if zombie_count > 50:
+            score -= 25
+            self._recommendations.append(f"🧟 [Zombie Apocalypse]({self.LINK_ZOMBIES}): {zombie_count} unavailable entities.")
+        elif zombie_count > 10:
+            score -= 10
+            self._recommendations.append(f"👻 [Clean Up]({self.LINK_ZOMBIES}): {zombie_count} unavailable entities.")
+
+        return max(0, score)
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        return self._score
+</file>
+
+<file path="custom_components/haghs/strings.json">
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "HAGHS Setup (v2.2)",
+        "description": "Welcome to HAGHS! We will now auto-detect your database. Please select your hardware monitoring sensors.",
+        "data": {
+          "storage_type": "Storage Medium (Influences Disk Thresholds)",
+          "update_interval": "Update Interval (Minutes)",
+          "log_file": "Log File Path (Optional, e.g. /config/home-assistant.log)"
+        }
+      }
+    },
+    "error": {
+      "invalid_path": "The specified log file path does not exist or is not readable."
+    },
+    "abort": {
+      "already_configured": "HAGHS is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure HAGHS",
+        "description": "Adjust your settings without reinstalling.",
+        "data": {
+          "storage_type": "Storage Medium",
+          "update_interval": "Update Interval (Minutes)",
+          "log_file": "Log File Path (leave empty to disable)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "button": {
+      "recalculate": {
+        "name": "Recalculate Score"
+      }
+    }
+  }
+}
+</file>
+
+<file path="hacs.json">
+{
+  "name": "HAGHS - Home Assistant Global Health Score",
+  "render_readme": true,
+  "homeassistant": "2024.1.0"
+}
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2026 denzo_91
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="README.md">
+<img width="460" height="210" alt="logo@2xzugeschnitten" src="https://github.com/user-attachments/assets/63f439f2-58ab-4306-9e34-932b74a30d6d" />
+
+
+**A Technical Specification for System Stability and Hygiene Standardized Monitoring.**
+
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![GitHub Release](https://img.shields.io/github/v/release/d-n91/home-assistant-global-health-score?style=for-the-badge&color=green)](https://github.com/d-n91/home-assistant-global-health-score/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/d-n91/home-assistant-global-health-score?style=for-the-badge&color=yellow)](https://github.com/d-n91/home-assistant-global-health-score/stargazers)
+![AI-Powered](https://img.shields.io/badge/Developed%20with-AI-blue?style=for-the-badge&logo=google-gemini&logoColor=white)
+
+## Abstract
+As Home Assistant matures into a mission-critical Smart Home OS, the need for a unified stability metric becomes paramount. **HAGHS** is a logical framework designed to provide an objective **Health Index (0-100)**. It differentiates between transient hardware load and chronic maintenance neglect, providing users with a "North Star" for instance optimization.
+
+---
+
+## The HAGHS Standard (v2.1.2)
+
+The index is calculated via a weighted average of two core pillars, prioritizing long-term software hygiene over temporary hardware fluctuations.
+
+### The Global Formula
+
+$$Score_{Global} = \lfloor (Score_{Hardware} \cdot 0.4) + (Score_{Application} \cdot 0.6) \rfloor$$
+
+*Note: We use **Floor Rounding** (Integer) to ensure a "Perfect 100" is only achieved by truly optimized systems. Even a minor penalty will drop the score to 99.*
+
+---
+
+## Pillar 1: Hardware Performance (40%)
+
+Evaluates the physical constraints of the host machine. It uses tiered penalties to filter out background noise while flagging genuine resource exhaustion.
+
+* **CPU Load (Tiered):** Penalties start at **>10% usage** to ensure responsiveness.
+* **Memory Pressure:** Deductions apply above **70% usage** to respect native Supervisor overhead.
+* **Storage Integrity:** Critical deduction when disk usage exceeds **80%**, escalating as the system nears the 95% threshold.
+
+---
+
+## Pillar 2: Application Hygiene (60%)
+
+Measures "maintenance debt"—the hidden factors that cause sluggishness, failed backups, and slow restarts.
+
+* **Zombie Entities:** Monitors `unavailable` or `unknown` states (Capped at 20 pts).
+* **Database Hygiene:** Penalizes `home-assistant_v2.db` growth (>1GB Warning / >2.5GB Critical).
+* **Updates & Core Age:** Tracks pending updates and penalizes a "Core Version Lag" of >2 months.
+* **Safety Net:** A static **30-point deduction** for stale backups.
+
+---
+
+## Configuration (The UI Way)
+
+HAGHS is installed as a **HACS Custom Repository** and configured via a **Setup Mask (UI)**. 
+
+### 1. Prerequisites (Prepare your Sensors)
+
+**A. System Monitor:**
+Install the **System Monitor** integration. Ensure these specific sensors are **enabled**:
+* `sensor.system_monitor_processor_use` (Percentage %)
+* `sensor.system_monitor_memory_usage` (Percentage %)
+* `sensor.system_monitor_disk_usage` (Percentage %)
+  
+   **Note:**
+   The disk usage sensors do not support monitoring folder/directory sizes. Instead, it is only targeting “disks” (more specifically mount points on Linux).
+
+**B. Database Sensor (SQLite / Standard):**
+To allow Home Assistant to see its own database size, add this to your `configuration.yaml` and restart:
+
+```yaml
+homeassistant:
+  allowlist_external_dirs:
+    - "/config"
+```
+
+**After the restart:**
+1.  Go to **Settings > Integrations > Add Integration**.
+2.  Search for **File Size** and set the path to: `/config/home-assistant_v2.db`.
+
+*Note: For MariaDB/Postgres, create a SQL sensor that returns the size in MB.*
+
+### 2. Installation & Setup
+1.  Add this repo to **HACS** (Custom Repository, Category: Integration).
+2.  Download and **Restart Home Assistant**.
+3.  Go to **Settings > Integrations > Add Integration** and search for **HAGHS**.
+4.  Follow the setup mask to select your sensors. 
+
+**⚠️ Log File Deprecation:** We are phasing out Log File monitoring to streamline the integration. In the setup mask, please **leave the log file field empty** to skip this check.
+
+---
+
+## Label Configuration (Smart Whitelisting)
+To prevent false positives from sleeping tablets or seasonal devices:
+1.  Go to **Settings > Devices & Services > Labels**.
+2.  Create a label named `haghs_ignore`.
+3.  Assign this label to any **Device** or **Entity**. 
+    * **Pro Tip:** Assigning the label to a **Device** automatically whitelists **all underlying entities** belonging to that specific device.
+
+---
+
+## Roadmap
+* **Custom Thresholds:** Adjust DB limits to your hardware (e.g., for large SSD users).
+* **Time-Trigger:** Configure the score to update every 15/30/60 minutes to save resources.
+* **Beta Support:** Special logic for users running Home Assistant Beta versions (no version lag penalty).
+
+---
+
+## UI Integration Example
+
+![NEW HAGHS Dashboard card](https://github.com/user-attachments/assets/ac4dbcf8-94b3-40a5-8835-e81853aa8c9f)
+
+Recommended configuration for a clean frontend display:
+
+```yaml
+type: vertical-stack
+cards:
+  - type: gauge
+    entity: sensor.system_ha_global_health_score
+    name: HAGHS
+    needle: true
+    severity:
+      green: 90
+      yellow: 75
+      red: 0
+  - type: markdown
+    content: >
+      {% set entity_id = 'sensor.system_ha_global_health_score' %}  {% set
+      recommendations = state_attr(entity_id, 'recommendations') %}  {% set
+      z_raw = state_attr(entity_id, 'zombie_entities') | default('', true) %}
+
+      ### 🛡️ Advisor Recommendations  {% if recommendations not in [none,
+      'unknown', 'unavailable', 'none'] %}
+        {{ recommendations }}
+      {% elif states(entity_id) in ['unavailable', 'unknown'] %}
+        ⚠️ **Error:** Health Advisor sensor is offline.
+      {% else %}
+        ✅ System healthy. No recommendations.
+      {% endif %}
+
+      ---
+
+      {% if z_raw not in ['None', '', none] %}
+        {% set z_list = z_raw.split(',') | map('trim') | select('search', '\\.') | list %}
+        {% set grouped_zombies = expand(z_list) | groupby('domain') %}
+      <details> <summary><b>Zombie Domains: {{ grouped_zombies |
+      length}}</b></summary> {% for d in grouped_zombies %}<br>  <details>
+      <summary>{{- d[0] | title }}: <b>{{ d[1] | count }}</b></summary> {% for i
+      in d[1] -%} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • {{ device_attr(i.entity_id, 'name') | default('unknown device', true) }} ({{ i.name }}): <b>{{ i.state
+      }}</b><br>  {% endfor %}  </details>  {% endfor %} </details>  {% else %} 
+      ✅ **No zombie entities detected.** {% endif %}
+
+```
+---
+
+## FAQ
+
+**Why is my score so low?**
+Check the UI dashboard card. It will tell you exactly where the penalties are coming from (e.g., "Zombie entities detected").
+
+**Does this work with Docker?**
+Yes! As long as you expose the system metrics via the `systemmonitor` integration and provide the database size via a sensor.
+
+---
+
+## Changelog
+
+### [v2.1.1] - 2026-01-29
+* **UI Migration:** Transitioned from YAML variables to a full **Config Flow (Setup Mask)**.
+* **Optimization:** `haghs_ignore` label on a Device now automatically covers all its entities.
+
+### [v2.0.2] - 2026-01-26
+* **Refinement:** Made Log File monitoring explicitly optional to support HAOS users without CLI access.
+
+### [v2.0.0] - 2026-01-26
+* **Major:** Added **Database & Log Hygiene** monitoring.
+* **Feature:** Implemented **Deep Label Support**.
+* **Logic:** Added **Core Age** penalty (>2 months lag).
+* **Logic:** Added **Cumulative Update** counting (capped at 35 pts).
+
+### [v1.3.0] - 2026-01-24
+* **NEW:** Implemented Single-Point Configuration using Template Variables.
+* **NEW:** Added Heavyweight CPU Tiers.
+* **Fixed:** Switched to **Floor Rounding** (Integer) for a more honest health assessment.
+
+---
+
+**AI Disclosure:** While the architectural concept and logic are my own, I utilized AI to assist with code optimization and documentation formatting.
+</file>
+
+<file path="README2.md">
+<img width="460" height="210" alt="logo@2xzugeschnitten" src="https://github.com/user-attachments/assets/63f439f2-58ab-4306-9e34-932b74a30d6d" />
+
+
+**A Technical Specification for System Stability and Hygiene Standardized Monitoring.**
+
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![GitHub Release](https://img.shields.io/github/v/release/d-n91/home-assistant-global-health-score?style=for-the-badge&color=green)](https://github.com/d-n91/home-assistant-global-health-score/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/d-n91/home-assistant-global-health-score?style=for-the-badge&color=yellow)](https://github.com/d-n91/home-assistant-global-health-score/stargazers)
+![AI-Powered](https://img.shields.io/badge/Developed%20with-AI-blue?style=for-the-badge&logo=google-gemini&logoColor=white)
+
+## Abstract
+As Home Assistant matures into a mission-critical Smart Home OS, the need for a unified stability metric becomes paramount. **HAGHS** is a logical framework designed to provide an objective **Health Index (0-100)**. It differentiates between transient hardware load and chronic maintenance neglect, providing users with a "North Star" for instance optimization.
+
+---
+
+## Table of Contents
+- [The HAGHS Standard](#the-haghs-standard-v222)
+- [Pillar 1: Hardware Performance (40%)](#pillar-1-hardware-performance-40)
+- [Pillar 2: Application Hygiene (60%)](#pillar-2-application-hygiene-60)
+- [Configuration](#configuration)
+  - [Prerequisites](#1-prerequisites)
+  - [Installation & Setup](#2-installation--setup)
+  - [Options Flow](#3-options-flow-runtime-settings)
+  - [External Database](#external-database)
+- [Label Configuration](#label-configuration-smart-whitelisting)
+- [Sensor Attributes](#sensor-attributes)
+- [UI Integration](#ui-integration)
+  - [HAGHS Lite](#haghs-lite-quick-check)
+  - [HAGHS Pro](#haghs-pro-command-center)
+- [FAQ](#faq)
+- [Changelog](#changelog)
+
+---
+
+## The HAGHS Standard (v2.2.2)
+
+The index is calculated via a weighted average of two core pillars, prioritizing long-term software hygiene over temporary hardware fluctuations.
+
+### The Global Formula
+
+$$Score_{Global} = \lfloor (Score_{Hardware} \cdot 0.4) + (Score_{Application} \cdot 0.6) \rfloor$$
+
+*Note: We use **Floor Rounding** (Integer) to ensure a "Perfect 100" is only achieved by truly optimized systems. Even a minor penalty will drop the score to 99.*
+
+---
+
+## Pillar 1: Hardware Performance (40%)
+
+Evaluates the physical constraints of the host machine using real system metrics. The hardware score is the average of all available component scores (CPU, RAM, I/O, Disk).
+
+* **Metric Source (Smart Fallback):** HAGHS reads **Pressure Stall Information (PSI)** directly from the Linux kernel (`/proc/pressure/cpu`, `/proc/pressure/memory`, `/proc/pressure/io`) for high-precision measurements. If PSI is unavailable (Windows, older Docker, non-Linux hosts), it automatically falls back to the manually configured CPU/RAM sensors. PSI measures real *stall time* (how long tasks waited for a resource), while classic sensors measure *utilization* (how busy a resource is). Because these scales differ fundamentally, HAGHS uses **separate threshold tiers** for each source.
+
+* **CPU Load (Tiered):**
+
+  | | Classic Sensor (Utilization) | PSI (Stall Time) |
+  |---|---|---|
+  | No penalty | 0–25% | 0–5% |
+  | Light (10 pts) | 26–40% | 6–15% |
+  | Medium (25 pts) | 41–60% | 16–30% |
+  | Heavy (50 pts) | 61–80% | 31–50% |
+  | Critical (80 pts) | >80% | >50% |
+
+* **Memory Pressure (Tiered):**
+
+  | | Classic Sensor (Utilization) | PSI (Stall Time) |
+  |---|---|---|
+  | No penalty | 0–69% | 0–5% |
+  | Gradual ramp | 70–89% (linear) | — |
+  | Light (10 pts) | — | 6–10% |
+  | Medium (25 pts) | — | 11–25% |
+  | Heavy (50 pts) | — | 26–40% |
+  | Critical (80 pts) | ≥90% | >40% |
+
+* **I/O Pressure (PSI-only):** Only available on systems with PSI support. Measures disk/storage stall time, directly affects recorder writes, automation execution, and restart speed.
+
+  | | PSI I/O (Stall Time) |
+  |---|---|
+  | No penalty | 0–5% |
+  | Light (10 pts) | 6–15% |
+  | Medium (25 pts) | 16–30% |
+  | Heavy (50 pts) | 31–50% |
+  | Critical (80 pts) | >50% |
+
+  > When PSI I/O is available, the hardware score uses **4 components** (CPU + RAM + I/O + Disk) / 4. Without I/O, it falls back to **3 components** (CPU + RAM + Disk) / 3.
+
+* **Storage Integrity (Smart Thresholds):** Disk usage is **auto-detected** via `psutil`, no manual sensor needed. Thresholds adapt to your storage type:
+  * **SD-Card / eMMC:** Critical at **<3 GB free**, Warning at **<5 GB free**.
+  * **SSD:** Warning at **<10% free** space.
+
+---
+
+## Pillar 2: Application Hygiene (60%)
+
+Measures "maintenance debt", the hidden factors that cause sluggishness, failed backups, and slow restarts.
+
+* **Zombie Entities (Ratio-based, max 20 pts):** Penalties scale with the percentage of zombies relative to total entities, not a fixed count. A **15-minute grace period** prevents false positives from temporary network outages. The attribute list is capped at 20 entries to protect the state machine; the full count is always accurate.
+* **Database Hygiene (Dynamic Limit):** Database size is **auto-detected** for the built-in SQLite database — no manual FileSize sensor or YAML needed. For **external databases** (MariaDB, PostgreSQL), you can configure a custom database size sensor in the setup or options menu (see [External Database](#external-database) below). The limit scales with your system: `Limit_MB = 1000 + (Total_Entities × 2.5)`. Example: 200 entities = 1.5 GB limit.
+* **Updates & Core Age:** Tracks pending updates and lists them by name (e.g., `pending_updates: ["ESPHome 2024.2"]`). Penalizes a "Core Version Lag" of **>3 months** behind the latest release. The `haghs_ignore` label also works on update entities.
+* **Integration Health:** Natively detects integrations stuck in `SETUP_ERROR`, `SETUP_RETRY`, or `FAILED_UNLOAD` via HA's ConfigEntry API, the same states shown as "error" on the Integrations page. Penalty: **5 pts per unhealthy integration**, capped at **15 pts**.
+* **Safety Net:** A static **30-point deduction** for stale backups.
+* **Config Audit (Bonus):** Awards up to **+10 points** for good recorder hygiene, purge days configured (+5) and entity filters active (+5).
+
+---
+
+## Configuration
+
+HAGHS is installed via **HACS** and configured via the **UI**
+
+### 1. Prerequisites
+
+Install the **System Monitor** integration. These sensors serve as a fallback if your system does not support PSI:
+* `sensor.system_monitor_processor_use` (Percentage %)
+* `sensor.system_monitor_memory_usage` (Percentage %)
+
+> **Note:** On most Linux-based HA installations (HAOS, Supervised), HAGHS uses PSI data automatically and these sensors are only a safety net. They are still required during setup but may not be actively used for scoring.
+
+**That's it.** Database size and disk usage are detected automatically. No `configuration.yaml` changes needed.
+
+### 2. Installation & Setup
+1.  Download **HAGHS** in **HACS** and **Restart Home Assistant**.
+2.  Go to **Settings > Integrations > Add Integration** and search for **HAGHS**.
+3.  Follow the setup mask:
+    * Select your **CPU** and **RAM** sensors (PSI fallback).
+    * Choose your **Storage Type** (SD-Card / SSD / eMMC, default: SD-Card).
+    * Optionally change the **Ignore Label** (default: `haghs_ignore`).
+    * Optionally select a **Database Size Sensor** for external databases (see below).
+
+### 3. Options Flow (Runtime Settings)
+After setup, go to **Settings > Integrations > HAGHS > Configure** to adjust:
+* CPU / RAM sensors
+* Storage type
+* Ignore label
+* **Database size sensor** (for external databases)
+* **Update interval** (10–3600 seconds, default: 60s)
+
+Changes apply immediately, no restart required.
+
+### External Database
+
+If you use an **external database** (MariaDB, PostgreSQL) instead of the built-in SQLite, HAGHS cannot auto-detect the database size. To enable database monitoring for your setup:
+
+1. Create a sensor that reports your external database size **in MB** (e.g., via the SQL integration, a REST sensor, or a custom component).
+2. Go to **Settings > Integrations > HAGHS > Configure**.
+3. Select your database size sensor in the **"Database size sensor (optional)"** field.
+
+**Examples of compatible sensors:**
+* `sensor.mariadb_size` — MariaDB database size via SQL integration
+* `sensor.postgres_db_size` — PostgreSQL database size via SQL integration
+
+> **Note:** If left empty, HAGHS uses the built-in SQLite auto-detection. If you use an external database and do not provide a sensor, the database score will simply be neutral (no penalty, no monitoring). The sensor must report the value in **MB** — not bytes, not GB.
+
+---
+
+## Label Configuration (Smart Whitelisting)
+To prevent false positives from sleeping tablets or seasonal devices:
+1.  Go to **Settings > Devices & Services > Labels**.
+2.  Create a label named `haghs_ignore`.
+3.  Assign this label to any **Device**, **Entity**, or **Update Entity**.
+    * **Pro Tip:** Assigning the label to a **Device** automatically whitelists **all underlying entities** belonging to that specific device.
+    * **Update Tip:** Labelled update entities are excluded from the update count and penalty.
+
+---
+
+## Sensor Attributes
+
+HAGHS exposes the following attributes for use in dashboard cards, automations, and templates:
+
+| Attribute | Type | Description |
+|---|---|---|
+| `hardware_score` | int | Hardware pillar score (0–100), averaged from CPU, RAM, I/O (if PSI), and Disk |
+| `application_score` | int | Application pillar score (0–100) |
+| `zombie_count` | int | Total number of zombie entities |
+| `zombie_entities` | list | Entity IDs of zombies (capped at 20) |
+| `db_size_mb` | float | Current database size in MB (auto-detected for SQLite, or from external DB sensor if configured) |
+| `psi_available` | bool | Whether PSI metrics are active (CPU + RAM + I/O). When `false`, only classic sensors are used (CPU + RAM, no I/O) |
+| `recorder_keep_days` | int/null | Configured purge days (null = not set) |
+| `recorder_filter_active` | bool | Whether entity filters are active |
+| `pending_updates` | list | Names of pending updates (e.g., `["ESPHome 2024.2"]`) |
+| `recommendations` | string | Advisor recommendations (CPU, RAM, I/O, disk, DB, updates, zombies, backup, core lag) |
+
+---
+
+## Roadmap
+
+* The roadmap is a living document. New ideas are collected, evaluated, and added here once they are deemed viable and aligned with the
+  HAGHS philosophy.
+
+---
+
+## UI Integration
+
+HAGHS provides all data as sensor attributes. Dashboard visualization happens entirely in Lovelace, keeping a clean separation between backend (sensor) and frontend (UI).
+
+Below are two ready-to-use card configurations:
+
+### HAGHS Lite (Quick Check)
+
+A compact card for a fast overview, score, sub-scores, and actionable links.
+
+![HAGHS Lite v2 2](https://github.com/user-attachments/assets/00ed0c47-bcc7-4ef7-bad4-f76950347e88)
+
+```yaml
+type: vertical-stack
+cards:
+  - type: gauge
+    entity: sensor.system_ha_global_health_score
+    name: HAGHS
+    unit: " "
+    needle: true
+    severity:
+      green: 90
+      yellow: 75
+      red: 0
+  - type: markdown
+    content: >
+      {% set e = 'sensor.system_ha_global_health_score' %} {% set hw =
+      state_attr(e, 'hardware_score') | int(0) %} {% set app = state_attr(e,
+      'application_score') | int(0) %} {% set rec = state_attr(e,
+      'recommendations') | default('', true) %} {% set updates = state_attr(e,
+      'pending_updates') | default([], true) | list %} {% set zombies =
+      state_attr(e, 'zombie_count') | int(0) %} {% set psi =
+        state_attr(e, 'psi_available') | default(false, true) %}
+
+      | Hardware | Application | | **{{ hw }}**/100 | **{{ app }}**/100 |
+
+      {% if updates | length > 0 %} 📦 **{{ updates | length }} Update(s)
+      pending** — [Open Updates](/config/updates) {% endif %}
+
+      {% if zombies > 0 %} 🧟 **{{ zombies }} Zombie(s)** — [Check
+      Entities](/config/entities) {% endif %}
+
+      {% if rec not in [none, 'unknown', 'unavailable'] and '✅' not in rec %} {%
+      else %} --- ✅ System healthy. No recommendations. {% endif %}
+
+      **Metric Source:** {% if psi %} 🟢 PSI active (CPU + RAM + I/O) —
+        Hardware score uses 4 components {% else %} ⚙️ Classic sensors (CPU +
+        RAM + Disk) — Hardware score uses 3 components {%
+        endif %}
+
+```
+
+### HAGHS Pro (Command Center)
+
+A comprehensive dashboard with full score breakdown, grouped zombies, database monitoring, recorder health, and deep-links.
+
+![HAGHS Pro v2 2](https://github.com/user-attachments/assets/a9aef263-8ee1-4f57-aa88-a54e819d42bd)
+
+```yaml
+type: vertical-stack
+cards:
+  - type: gauge
+    entity: sensor.system_ha_global_health_score
+    name: HAGHS
+    unit: " "
+    needle: true
+    severity:
+      green: 90
+      yellow: 75
+      red: 0
+  - type: markdown
+    title: Score Breakdown
+    content: >
+      {% set e = 'sensor.system_ha_global_health_score' %} {% set hw =
+      state_attr(e, 'hardware_score') | int(0) %} {% set app = state_attr(e,
+      'application_score') | int(0) %} {% set score = states(e) | int(0) %}
+
+      | Hardware | Application | | **{{ hw }}**/100 | **{{ app }}**/100 |
+
+
+      **Global Formula:** ({{ hw }} × 0.4) + ({{ app }} × 0.6) = **{{ score }}**
+  - type: markdown
+    title: 🛡️ Advisor
+    content: >
+      {% set e = 'sensor.system_ha_global_health_score' %} {% set rec =
+      state_attr(e, 'recommendations') | default('', true) %}
+
+      {% if states(e) in ['unavailable', 'unknown'] %}
+        ⚠️ **Error:** Health Advisor sensor is offline.
+      {% elif rec not in [none, 'unknown', 'unavailable'] and '✅' not in rec %}
+        {{ rec }}
+      {% else %}
+        ✅ System healthy. No recommendations.
+      {% endif %}
+  - type: conditional
+    conditions:
+      - condition: numeric_state
+        entity: sensor.system_ha_global_health_score
+        attribute: zombie_count
+        above: -1
+    card:
+      type: markdown
+      title: 📦 Updates & Maintenance
+      content: >
+        {% set e = 'sensor.system_ha_global_health_score' %} {% set updates =
+        state_attr(e, 'pending_updates') | default([], true) | list %} {% set
+        db_mb = state_attr(e, 'db_size_mb') | float(0) %} {% set keep =
+        state_attr(e, 'recorder_keep_days') %} {% set filter = state_attr(e,
+        'recorder_filter_active') | default(false, true) %} {% set psi =
+        state_attr(e, 'psi_available') | default(false, true) %}
+
+        {% if updates | length > 0 %} **{{ updates | length }} Update(s)
+        pending:** {% for u in updates %} &nbsp;&nbsp; • {{ u }} {% endfor %} [→
+        Open Updates](/config/updates) {% else %} ✅ All updates installed {%
+        endif %}
+
+        ---
+
+        Database: {% if db_mb > 2500 %}{% elif db_mb > 1000 %}{% else %}{% endif
+        %} {{ db_mb | round(1) }} MB {% if db_mb == 0.0 %}*(external DB
+        detected)*{% endif %}
+
+        Recorder: {% if keep not in [none, 'unknown'] %}  Purge active ({{ keep
+        }} days) {% else %}  No purge configured — DB may grow indefinitely {%
+        endif %}
+
+        {{ 'Entity filter active' if filter else ' No entity filter' }}
+
+        ---
+
+        **Metric Source:** {% if psi %} 🟢 PSI active (CPU + RAM + I/O + Disk) —
+        Hardware score uses 4 components {% else %} ⚙️ Classic sensors (CPU +
+        RAM + Disk) — Hardware score uses 3 components {% endif %}
+  - type: markdown
+    title: 🧟 Zombie Entities
+    content: >
+      {% set e = 'sensor.system_ha_global_health_score' %} {% set z_raw =
+      state_attr(e, 'zombie_entities') | default('', true) %} {% set z_count =
+      state_attr(e, 'zombie_count') | int(0) %}
+
+      {% if z_count == 0 %}
+        ✅ **No zombie entities detected.**
+      {% else %}
+        {% set z_list = z_raw if z_raw is iterable and z_raw is not string else z_raw.split(',') | map('trim') | select('search', '\\.')
+        | list %}
+        {% set grouped = expand(z_list) | groupby('domain') %}
+
+        **{{ z_count }} Zombie(s)** across **{{ grouped | length }}** domain(s)
+        {% if z_count > 20 %}*(showing first 20 — {{ z_count - 20 }} more hidden)*{% endif %}
+
+        [→ Check Entities](/config/entities)
+
+        {% for domain in grouped %}
+        <details>
+        <summary><b>{{ domain[0] | title }}: {{ domain[1] | count }}</b></summary>
+        {% for item in domain[1] %}
+        &nbsp;&nbsp; • {{ device_attr(item.entity_id, 'name') | default('unknown device', true) }} — {{ item.name }}: <b>{{ item.state
+        }}</b>
+        {% endfor %}
+        </details>
+        {% endfor %}
+      {% endif %}
+```
+
+### Lite vs. Pro Comparison
+
+| Feature | Lite | Pro |
+|---|:---:|:---:|
+| Gauge with score | Yes | Yes |
+| Hardware / Application score | Table | Table + live formula |
+| Advisor recommendations (CPU, RAM, I/O, ...) | Inline | Dedicated card |
+| Pending updates (by name) | Count + link | Full list + deep-link |
+| Zombie details (by domain) | Count + link | Grouped + expandable |
+| Database size + warning | — | Yes |
+| Recorder health (purge + filter) | — | Yes |
+| Metric source (PSI vs. Classic + component count) | Yes (detailed) | Yes (detailed) |
+| Deep-links to HA settings | Yes | Yes |
+
+---
+
+## FAQ
+
+**Why is my score so low?**
+Check the Advisor recommendations in the dashboard card. They tell you exactly where penalties come from (e.g., "5 update(s) pending", "Stale backup detected").
+
+**Does HAGHS work with Docker / Kubernetes?**
+Yes. HAGHS auto-detects disk usage and database size on any platform. The Core update entity is detected dynamically, no Supervisor dependency.
+
+**What is PSI and why does HAGHS use it?**
+Pressure Stall Information (PSI) is a Linux kernel feature that measures real resource contention, how long tasks are stalled waiting for CPU, memory, or I/O. Unlike classic utilization sensors (which just show "how busy" a resource is), PSI reveals actual bottlenecks. HAGHS uses separate penalty thresholds for PSI and classic sensors because their scales differ fundamentally (e.g., 5% PSI stall time is significant, while 5% CPU utilization is idle).
+
+**Why does setup still ask for CPU/RAM sensors if PSI is automatic?**
+These sensors are a **smart fallback**. If your system supports PSI (most Linux-based HA installations), the sensors are not actively used for scoring. They are required so HAGHS can still function on systems without PSI support (Windows, older Docker setups).
+
+**What does "Hardware score uses 4 components" mean?**
+When PSI is available, HAGHS scores four hardware dimensions: **CPU + RAM + I/O + Disk**, averaged equally. Without PSI, I/O monitoring is not possible, so the hardware score is based on **3 components** (CPU + RAM + Disk). This means PSI-enabled systems get more granular hardware scoring.
+
+**I use an external database (MariaDB / PostgreSQL). How do I monitor it?**
+Go to **Settings > Integrations > HAGHS > Configure** and select your database size sensor in the **"Database size sensor"** field. The sensor must report the database size in **MB**. A common approach is to create a sensor via the SQL integration that queries your database size. If you don't provide a sensor, HAGHS will skip database monitoring (no penalty, no scoring) — your other scores are unaffected.
+
+**Do I still need a disk usage sensor?**
+No. HAGHS reads disk usage directly via `psutil`. No manual sensor selection required.
+
+**What are the exact database penalties?**
+HAGHS uses a dynamic limit based on your entity count (`1000 + entities × 2.5` MB). Below the limit: **0 pts**. Up to 2.5× the limit: **10 pts**. Above 2.5×: **30 pts**. Example: With 200 entities your limit is 1.5 GB — a 3 GB database would cost 10 pts, a 4+ GB database would cost 30 pts.
+
+**How are update penalties calculated?**
+Each pending update costs **5 pts**. A Core version lag (≥3 months behind) adds **20 pts**. The combined update penalty is capped at **35 pts** — so even with many outdated components, the update category alone won't tank your score beyond that.
+
+**What does the Config Audit bonus do?**
+HAGHS awards up to +10 bonus points if your recorder is well-configured: +5 for having `purge_keep_days` set, and +5 for having an entity include/exclude filter active. This rewards proactive database management.
+
+**How does the zombie grace period work?**
+Entities that just became `unavailable` or `unknown` are ignored for 15 minutes. This prevents your score from dropping during brief network hiccups or device reboots. After 15 minutes, they count as zombies.
+
+**Can I change the update interval?**
+Yes. Go to **Settings > Integrations > HAGHS > Configure** and adjust the update interval (10–3600 seconds). Lower values give faster updates, higher values save resources.
+
+**What happens if a sub-calculation fails?**
+HAGHS uses a safety net: if any pillar calculation times out or throws an error, it falls back to a neutral score (100 / no penalty) and logs a warning. The sensor never crashes.
+
+---
+
+## Changelog
+
+### [v2.2.2] - 2026-03-30
+* **Feature:** Added optional **Database Size Sensor** override for external databases (MariaDB, PostgreSQL). Configurable in both Setup and Options flow. When set, HAGHS uses the sensor value (in MB) instead of SQLite auto-detection. When left empty, the default SQLite behavior is unchanged. No migration needed — existing installations are unaffected.
+
+### [v2.2.1] - 2026-03-29
+* **Bugfix:** Fixed absurd percentage values in hardware recommendations (e.g. "Memory pressure is impacting score (5698.1%)") when a manually configured CPU/RAM sensor reports absolute values (MB/MHz) instead of percent. Values above 100% are now clamped and a warning is logged to help users select the correct sensor.
+
+### [v2.2.0] - 2026-03-29
+* **Architecture:** Full async migration to `DataUpdateCoordinator` with safety-net timeouts.
+* **Zero-YAML:** Database size and disk usage are now auto-detected. No manual sensors or `configuration.yaml` changes needed.
+* **PSI Integration:** Uses Linux Pressure Stall Information for CPU, Memory, and I/O with automatic fallback to classic sensors. Separate penalty tiers for PSI (stall time) vs. classic sensors (utilization) — because their scales differ fundamentally.
+* **I/O Scoring:** PSI I/O pressure is now actively scored. When available, the hardware pillar uses 4 components (CPU + RAM + I/O + Disk) instead of 3.
+* **CPU Threshold Adjustment:** Classic CPU penalty now starts at >25% (was >10%) to avoid penalizing normal system activity.
+* **Smart Disk Thresholds:** Storage-type-aware penalties (SD-Card/eMMC: absolute GB; SSD: percentage-based).
+* **Dynamic Database Limit:** DB threshold scales with entity count (`1000 + entities × 2.5` MB).
+* **Zombie Improvements:** Ratio-based penalties, 15-minute grace period, attribute list capped at 20.
+* **Update Improvements:** Ignore label works on updates, core lag threshold raised to 3 months, pending updates listed by name.
+* **Config Audit:** Bonus points for good recorder configuration (purge days + entity filters).
+* **Integration Health:** Native detection of unhealthy integrations via ConfigEntry state API (SETUP_ERROR, SETUP_RETRY, FAILED_UNLOAD). 5 pts per integration, max 15 pts.
+* **Options Flow:** All settings adjustable at runtime without reinstalling.
+* **Configurable Interval:** Update frequency adjustable from 10s to 3600s.
+* **i18n Ready:** All strings externalized to `strings.json`.
+* **Removed:** Log file monitoring (deprecated since v2.0.2).
+
+### [v2.1.1] - 2026-01-29
+* **UI Migration:** Transitioned from YAML variables to a full **Config Flow (Setup Mask)**.
+* **Optimization:** `haghs_ignore` label on a Device now automatically covers all its entities.
+
+### [v2.0.2] - 2026-01-26
+* **Refinement:** Made Log File monitoring explicitly optional to support HAOS users without CLI access.
+
+### [v2.0.0] - 2026-01-26
+* **Major:** Added **Database & Log Hygiene** monitoring.
+* **Feature:** Implemented **Deep Label Support**.
+* **Logic:** Added **Core Age** penalty (>2 months lag).
+* **Logic:** Added **Cumulative Update** counting (capped at 35 pts).
+
+### [v1.3.0] - 2026-01-24
+* **NEW:** Implemented Single-Point Configuration using Template Variables.
+* **NEW:** Added Heavyweight CPU Tiers.
+* **Fixed:** Switched to **Floor Rounding** (Integer) for a more honest health assessment.
+
+---
+
+**AI Disclosure:** While the architectural concept and logic are my own, I utilized AI to assist with code optimization and documentation formatting.
+</file>
+
+</files>
