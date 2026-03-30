@@ -13,7 +13,35 @@ As Home Assistant matures into a mission-critical Smart Home OS, the need for a 
 
 ---
 
-## The HAGHS Standard (v2.2.1)
+### Important: Upgrading from v2.1.x to v2.2+ (Migration Error)
+If you are upgrading from an older version and encounter a `Migration handler not found` error in your logs or UI, this is expected behavior. 
+
+Version 2.2 introduced a complete architectural rewrite, moving away from manual YAML configurations to a pure auto-detection setup. Because the old stored settings are fundamentally incompatible with the new system, an automatic background migration is not possible.
+
+**How to fix:** Simply delete the existing HAGHS integration from your *Settings > Devices & Services* dashboard, restart Home Assistant, and add the integration fresh.
+
+---
+
+## Table of Contents
+- [The HAGHS Standard](#the-haghs-standard-v222)
+- [Pillar 1: Hardware Performance (40%)](#pillar-1-hardware-performance-40)
+- [Pillar 2: Application Hygiene (60%)](#pillar-2-application-hygiene-60)
+- [Configuration](#configuration)
+  - [Prerequisites](#1-prerequisites)
+  - [Installation & Setup](#2-installation--setup)
+  - [Options Flow](#3-options-flow-runtime-settings)
+  - [External Database](#external-database)
+- [Label Configuration](#label-configuration-smart-whitelisting)
+- [Sensor Attributes](#sensor-attributes)
+- [UI Integration](#ui-integration)
+  - [HAGHS Lite](#haghs-lite-quick-check)
+  - [HAGHS Pro](#haghs-pro-command-center)
+- [FAQ](#faq)
+- [Changelog](#changelog)
+
+---
+
+## The HAGHS Standard (v2.2.2)
 
 The index is calculated via a weighted average of two core pillars, prioritizing long-term software hygiene over temporary hardware fluctuations.
 
@@ -75,7 +103,7 @@ Evaluates the physical constraints of the host machine using real system metrics
 Measures "maintenance debt", the hidden factors that cause sluggishness, failed backups, and slow restarts.
 
 * **Zombie Entities (Ratio-based, max 20 pts):** Penalties scale with the percentage of zombies relative to total entities, not a fixed count. A **15-minute grace period** prevents false positives from temporary network outages. The attribute list is capped at 20 entries to protect the state machine; the full count is always accurate.
-* **Database Hygiene (Dynamic Limit):** Database size is **auto-detected**, no manual FileSize sensor or YAML needed. The limit scales with your system: `Limit_MB = 1000 + (Total_Entities × 2.5)`. Example: 200 entities = 1.5 GB limit.
+* **Database Hygiene (Dynamic Limit):** Database size is **auto-detected** for the built-in SQLite database, no manual FileSize sensor or YAML needed. For **external databases** (MariaDB, PostgreSQL), you can configure a custom database size sensor in the setup or options menu (see [External Database](#external-database) below). The limit scales with your system: `Limit_MB = 1000 + (Total_Entities × 2.5)`. Example: 200 entities = 1.5 GB limit.
 * **Updates & Core Age:** Tracks pending updates and lists them by name (e.g., `pending_updates: ["ESPHome 2024.2"]`). Penalizes a "Core Version Lag" of **>3 months** behind the latest release. The `haghs_ignore` label also works on update entities.
 * **Integration Health:** Natively detects integrations stuck in `SETUP_ERROR`, `SETUP_RETRY`, or `FAILED_UNLOAD` via HA's ConfigEntry API, the same states shown as "error" on the Integrations page. Penalty: **5 pts per unhealthy integration**, capped at **15 pts**.
 * **Safety Net:** A static **30-point deduction** for stale backups.
@@ -104,15 +132,31 @@ Install the **System Monitor** integration. These sensors serve as a fallback if
     * Select your **CPU** and **RAM** sensors (PSI fallback).
     * Choose your **Storage Type** (SD-Card / SSD / eMMC, default: SD-Card).
     * Optionally change the **Ignore Label** (default: `haghs_ignore`).
+    * Optionally select a **Database Size Sensor** for external databases (see below).
 
 ### 3. Options Flow (Runtime Settings)
 After setup, go to **Settings > Integrations > HAGHS > Configure** to adjust:
 * CPU / RAM sensors
 * Storage type
 * Ignore label
+* **Database size sensor** (for external databases)
 * **Update interval** (10–3600 seconds, default: 60s)
 
 Changes apply immediately, no restart required.
+
+### External Database
+
+If you use an **external database** (MariaDB, PostgreSQL) instead of the built-in SQLite, HAGHS cannot auto-detect the database size. To enable database monitoring for your setup:
+
+1. Create a sensor that reports your external database size **in MB** (e.g., via the SQL integration, a REST sensor, or a custom component).
+2. Go to **Settings > Integrations > HAGHS > Configure**.
+3. Select your database size sensor in the **"Database size sensor (optional)"** field.
+
+**Examples of compatible sensors:**
+* `sensor.mariadb_size`- MariaDB database size via SQL integration
+* `sensor.postgres_db_size`- PostgreSQL database size via SQL integration
+
+> **Note:** If left empty, HAGHS uses the built-in SQLite auto-detection. If you use an external database and do not provide a sensor, the database score will simply be neutral (no penalty, no monitoring). The sensor must report the value in **MB**, not bytes, not GB.
 
 ---
 
@@ -136,7 +180,7 @@ HAGHS exposes the following attributes for use in dashboard cards, automations, 
 | `application_score` | int | Application pillar score (0–100) |
 | `zombie_count` | int | Total number of zombie entities |
 | `zombie_entities` | list | Entity IDs of zombies (capped at 20) |
-| `db_size_mb` | float | Current database size in MB (auto-detected) |
+| `db_size_mb` | float | Current database size in MB (auto-detected for SQLite, or from external DB sensor if configured) |
 | `psi_available` | bool | Whether PSI metrics are active (CPU + RAM + I/O). When `false`, only classic sensors are used (CPU + RAM, no I/O) |
 | `recorder_keep_days` | int/null | Configured purge days (null = not set) |
 | `recorder_filter_active` | bool | Whether entity filters are active |
@@ -349,8 +393,8 @@ These sensors are a **smart fallback**. If your system supports PSI (most Linux-
 **What does "Hardware score uses 4 components" mean?**
 When PSI is available, HAGHS scores four hardware dimensions: **CPU + RAM + I/O + Disk**, averaged equally. Without PSI, I/O monitoring is not possible, so the hardware score is based on **3 components** (CPU + RAM + Disk). This means PSI-enabled systems get more granular hardware scoring.
 
-**Do I still need a FileSize sensor for the database?**
-No. As of v2.2, HAGHS detects the SQLite database size automatically. The `configuration.yaml` allowlist and manual FileSize sensor are no longer needed.
+**I use an external database (MariaDB / PostgreSQL). How do I monitor it?**
+Go to **Settings > Integrations > HAGHS > Configure** and select your database size sensor in the **"Database size sensor"** field. The sensor must report the database size in **MB**. A common approach is to create a sensor via the SQL integration that queries your database size. If you don't provide a sensor, HAGHS will skip database monitoring (no penalty, no scoring), your other scores are unaffected.
 
 **Do I still need a disk usage sensor?**
 No. HAGHS reads disk usage directly via `psutil`. No manual sensor selection required.
@@ -376,6 +420,9 @@ HAGHS uses a safety net: if any pillar calculation times out or throws an error,
 ---
 
 ## Changelog
+
+### [v2.2.2] - 2026-03-30
+* **Feature:** Added optional **Database Size Sensor** override for external databases (MariaDB, PostgreSQL). Configurable in both Setup and Options flow. When set, HAGHS uses the sensor value (in MB) instead of SQLite auto-detection. When left empty, the default SQLite behavior is unchanged. No migration needed, existing installations are unaffected.
 
 ### [v2.2.1] - 2026-03-29
 * **Bugfix:** Fixed absurd percentage values in hardware recommendations (e.g. "Memory pressure is impacting score (5698.1%)") when a manually configured CPU/RAM sensor reports absolute values (MB/MHz) instead of percent. Values above 100% are now clamped and a warning is logged to help users select the correct sensor.
