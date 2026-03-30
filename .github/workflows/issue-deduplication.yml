@@ -11,11 +11,10 @@ jobs:
     permissions:
       contents: read
       issues: write
-      id-token: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
@@ -23,15 +22,16 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           prompt: |
-            Analyze this new issue and check if it's a duplicate of existing issues in the repository.
+            Check if issue #${{ github.event.issue.number }} in ${{ github.repository }} is a duplicate of an existing issue.
 
-            Issue: #${{ github.event.issue.number }}
-            Repository: ${{ github.repository }}
+            Steps:
+            1. Get the new issue details:
+               gh issue view ${{ github.event.issue.number }} --json title,body
 
-            Your task:
-            1. Use mcp__github__get_issue to get details of the current issue (#${{ github.event.issue.number }})
-            2. Search for similar existing issues using mcp__github__search_issues with relevant keywords from the issue title and body
-            3. Compare the new issue with existing ones to identify potential duplicates
+            2. Search for similar existing issues using keywords from the title and body:
+               gh issue list --state all --search "KEYWORDS" --json number,title,state --limit 20
+
+            3. Compare the new issue with the search results to identify potential duplicates.
 
             Criteria for duplicates:
             - Same bug or error being reported
@@ -39,25 +39,18 @@ jobs:
             - Same question being asked
             - Issues describing the same root problem
 
-            If you find duplicates:
-            - Add a comment on the new issue linking to the original issue(s)
-            - Apply a "duplicate" label to the new issue
-            - Be polite and explain why it's a duplicate
-            - Suggest the user follow the original issue for updates
+            If you find a duplicate:
+            - Add a comment linking to the original issue:
+              gh issue comment ${{ github.event.issue.number }} --body "MESSAGE"
+            - Apply the duplicate label:
+              bash .github/workflows/scripts/edit-issue-labels.sh --issue ${{ github.event.issue.number }} --add-label duplicate
+            - Be polite and suggest the user follow the original issue.
 
-            If it's NOT a duplicate:
-            - Don't add any comments
-            - You may apply appropriate topic labels based on the issue content
+            If it is NOT a duplicate:
+            - Do nothing. No comment, no label.
 
-            Use these tools:
-            - mcp__github__get_issue: Get issue details
-            - mcp__github__search_issues: Search for similar issues
-            - mcp__github__list_issues: List recent issues if needed
-            - mcp__github__create_issue_comment: Add a comment if duplicate found
-            - mcp__github__update_issue: Add labels
-
-            Be thorough but efficient. Focus on finding true duplicates, not just similar issues.
+            Be thorough but conservative. Only flag true duplicates, not just similar issues.
 
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
-            --allowedTools "mcp__github__get_issue,mcp__github__search_issues,mcp__github__list_issues,mcp__github__create_issue_comment,mcp__github__update_issue,mcp__github__get_issue_comments"
+            --allowedTools "Bash(gh issue *),Bash(bash .github/workflows/scripts/edit-issue-labels.sh *)"
