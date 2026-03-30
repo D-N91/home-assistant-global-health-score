@@ -7,6 +7,7 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_CPU_SENSOR,
+    CONF_DB_SENSOR,
     CONF_IGNORE_LABEL,
     CONF_RAM_SENSOR,
     CONF_STORAGE_TYPE,
@@ -59,6 +60,9 @@ class HaghsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     CONF_IGNORE_LABEL, default=DEFAULT_IGNORE_LABEL
                 ): selector.TextSelector(),
+                vol.Optional(CONF_DB_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
             }
         )
 
@@ -109,6 +113,14 @@ class HaghsOptionsFlowHandler(config_entries.OptionsFlow):
                     CONF_IGNORE_LABEL,
                     default=current.get(CONF_IGNORE_LABEL, DEFAULT_IGNORE_LABEL),
                 ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_DB_SENSOR,
+                    description={
+                        "suggested_value": current.get(CONF_DB_SENSOR, ""),
+                    },
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
                 vol.Optional(
                     CONF_UPDATE_INTERVAL,
                     default=current.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
