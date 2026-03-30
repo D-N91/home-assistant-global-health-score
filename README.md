@@ -333,14 +333,15 @@ cards:
     title: 🧟 Zombie Entities
     content: >
       {% set e = 'sensor.system_ha_global_health_score' %} {% set z_raw =
-      state_attr(e, 'zombie_entities') | default('', true) %} {% set z_count =
+      state_attr(e, 'zombie_entities') | default([], true) %} {% set z_count =
       state_attr(e, 'zombie_count') | int(0) %}
 
       {% if z_count == 0 %}
         ✅ **No zombie entities detected.**
       {% else %}
-        {% set z_list = z_raw if z_raw is iterable and z_raw is not string else z_raw.split(',') | map('trim') | select('search', '\\.')
-        | list %}
+        {% if z_raw is string %} {% set z_list = z_raw.split(',') |
+        map('trim') | list %} {% else %} {% set z_list = z_raw | list %} {%
+        endif %}
         {% set grouped = expand(z_list) | groupby('domain') %}
 
         **{{ z_count }} Zombie(s)** across **{{ grouped | length }}** domain(s)
