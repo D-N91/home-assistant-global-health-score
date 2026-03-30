@@ -21,6 +21,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_CPU_SENSOR,
+    CONF_DB_SENSOR,
     CONF_IGNORE_LABEL,
     CONF_RAM_SENSOR,
     CONF_STORAGE_TYPE,
@@ -155,6 +156,7 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.cpu_id: str | None = opts.get(CONF_CPU_SENSOR)
         self.ram_id: str | None = opts.get(CONF_RAM_SENSOR)
+        self.db_sensor_id: str | None = opts.get(CONF_DB_SENSOR) or None
         self.ignore_label: str | None = opts.get(CONF_IGNORE_LABEL)
         self._storage_type: str = opts.get(CONF_STORAGE_TYPE, DEFAULT_STORAGE_TYPE)
 
@@ -648,9 +650,31 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_get_db_size_mb(self) -> float:
         """Return the HA database size in MB.
 
-        Reads the SQLite file size via os.path.getsize (blocking I/O → executor).
-        Returns 0.0 if the file does not exist (external DB like MariaDB).
+        If an external DB sensor is configured, its state is used directly
+        (expected to report size in MB).  Otherwise falls back to measuring
+        the local SQLite file via os.path.getsize.
+        Returns 0.0 if no measurement is available (external DB without
+        sensor, or missing SQLite file).
         """
+        # External DB sensor override
+        if self.db_sensor_id:
+            val = self._get_float(self.db_sensor_id)
+            if val > 0:
+                _LOGGER.debug(
+                    "HAGHS: Using external DB sensor '%s' — %.1f MB",
+                    self.db_sensor_id,
+                    val,
+                )
+                return val
+            _LOGGER.debug(
+                "HAGHS: External DB sensor '%s' returned %.1f — "
+                "skipping DB penalty",
+                self.db_sensor_id,
+                val,
+            )
+            return 0.0
+
+        # Default: local SQLite file
         try:
             size_bytes: int = await self.hass.async_add_executor_job(
                 os.path.getsize, self._db_path
