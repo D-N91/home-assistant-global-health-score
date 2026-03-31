@@ -2,16 +2,19 @@
 
 This document outlines planned features and improvements for the Home Assistant Global Health Score.
 
-## Planned
+## In Progress (dev branch)
 
-### Hardware Health Expansion: CPU Temperature & Power Supply Status (#21)
+### Power Supply Status Detection (#21)
 
-Enhance the hardware score with two new optional metrics:
+Auto-detect under-voltage conditions on Raspberry Pi devices via `binary_sensor.rpi_power_status`. A `Problem` state applies a flat 20-point penalty to the hardware score. No configuration needed — the check is skipped automatically on non-RPi hardware.
 
-- **CPU Temperature** — Detect thermal stress, throttling risks, and poor airflow. Users can define a target and max-safe temperature via config flow. The score decreases gradually as temperature approaches the limit.
-- **Power Supply Status** — Detect under-voltage conditions on Raspberry Pi devices. A `Problem` state reduces the health score to reflect real hardware instability.
+## Declined
 
-Both metrics remain optional to support diverse hardware platforms (RPi, x86, mini PCs).
+### CPU Temperature Monitoring (#21)
+
+**Status:** Will not be implemented.
+
+**Reasoning:** CPU temperature is a predictive hardware metric, not a current health indicator. If thermal throttling occurs, it already surfaces through elevated PSI stall values, which HAGHS captures. Adding temperature as a scoring component would dilute the existing hardware score without adding actionable health information. The required user configuration (sensor selection, threshold definition per hardware platform) conflicts with the pragmatism principle.
 
 ---
 
