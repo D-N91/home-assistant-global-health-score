@@ -37,6 +37,7 @@ from .const import (
     REC_DISK_SD_LOW,
     REC_DISK_SSD_LOW,
     REC_IO_PRESSURE,
+    REC_POWER_UNSTABLE,
     REC_RAM_PRESSURE,
     REC_UPDATES_PENDING,
     REC_ZOMBIES,
@@ -110,6 +111,7 @@ class _HardwareResult:
     p_cpu: int = 0
     p_ram: int = 0
     p_io: int = 0
+    p_power: int = 0
     psi_available: bool = False
 
 
@@ -365,18 +367,27 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             disk_pct = 0.0
             score_disk = 100.0
 
+        # -- Power Supply (RPi auto-detection) --
+        p_power = 0
+        power_state = self.hass.states.get("binary_sensor.rpi_power_status")
+        if power_state and power_state.state == "on":
+            p_power = 20
+
         # -- Final hardware score --
         # When PSI I/O is available: 4 components (CPU, RAM, I/O, Disk)
         # When I/O is not available: 3 components (CPU, RAM, Disk)
+        # Power penalty is applied as a flat deduction (not averaged)
         if psi.io is not None:
             hardware_final = max(
                 0.0,
-                min(100.0, (score_cpu + score_ram + score_io + score_disk) / 4),
+                min(100.0, (score_cpu + score_ram + score_io + score_disk) / 4
+                    - p_power),
             )
         else:
             hardware_final = max(
                 0.0,
-                min(100.0, (score_cpu + score_ram + score_disk) / 3),
+                min(100.0, (score_cpu + score_ram + score_disk) / 3
+                    - p_power),
             )
 
         if use_psi:
@@ -400,6 +411,7 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             p_cpu=p_cpu,
             p_ram=p_ram,
             p_io=p_io,
+            p_power=p_power,
             psi_available=use_psi,
         )
 
@@ -853,6 +865,8 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     limit_gb=app.db_limit_mb / 1000,
                 )
             )
+        if hw.p_power > 0:
+            advice.append(REC_POWER_UNSTABLE)
         if app.p_backup > 0:
             advice.append(REC_BACKUP_STALE)
         if app.update_count > 0:
