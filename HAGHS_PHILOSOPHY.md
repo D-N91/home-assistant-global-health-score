@@ -1,6 +1,6 @@
 # HAGHS Vision & Alignment Rules
-- **Kernfokus:** HAGHS dient ausschließlich der Systemgesundheit. Features, die rein dekorativ sind, werden mit niedriger Priorität behandelt oder abgelehnt.
-- **Zero-Latency Policy:** Jedes neue Feature muss prüfen, ob es den Funkverkehr belastet. Unnötiger Traffic wird blockiert.
-- **Netzwerk-Hygiene:** Bedingungen werden immer lokal vorher geprüft, bevor unnötiger Funkverkehr nach außen generiert wird.
-- **Pragmatismus:** Die einfachste effektive Lösung gewinnt immer, gefolgt von der tiefergehenden fachlichen Erklärung. Genauigkeit ist wichtiger als Einfachheit.
-- **Vision von HAGHS:** Das Ziel von HAGHS ist, eine native Integration von Home Assistant zu werden. Home Assistant soll beim frischen Aufsetzen jeglicher Instanz HAGHS als Standard verwenden. Die Metriken und Daten von HAGHS sollen mit Einwilligung der Nutzer ausgewertet werden, damit Home Assistant genau weiss, wie die Software eingesetzt wird und wie gesund die Instanzen sind. Eine Einbindung in GitHub bei der der HAGHS angegeben wird, kann den Entwicklern einen ersten Eindruck der Instanzwartung geben.
+- **Core Focus:** HAGHS serves exclusively system health. Features that are purely decorative are treated with low priority or rejected.
+- **Zero-Latency Policy:** Every new feature must be checked for whether it adds radio/network traffic. Unnecessary traffic is blocked.
+- **Network Hygiene:** Conditions are always checked locally first before generating unnecessary outbound traffic.
+- **Pragmatism:** The simplest effective solution always wins, followed by a deeper technical explanation. Accuracy is more important than simplicity.
+- **Vision of HAGHS:** The goal of HAGHS is to become a native Home Assistant integration. Home Assistant should use HAGHS as a standard on every fresh instance setup. With user consent, HAGHS metrics and data should be analyzed so Home Assistant knows exactly how the software is being used and how healthy the instances are. A GitHub integration where HAGHS is referenced can give developers a first impression of instance maintenance.
