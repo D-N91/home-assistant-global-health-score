@@ -241,7 +241,7 @@ cards:
       pending** — [Open Updates](/config/updates) {% endif %}
 
       {% if zombies > 0 %} 🧟 **{{ zombies }} Zombie(s)** — [Check
-      Entities](/config/entities) {% endif %}
+      Entities](https://my.home-assistant.io/redirect/entities/) {% endif %}
 
       {% if rec not in [none, 'unknown', 'unavailable'] and '✅' not in rec %} {%
       else %} --- ✅ System healthy. No recommendations. {% endif %}
@@ -352,7 +352,7 @@ cards:
         **{{ z_count }} Zombie(s)** across **{{ grouped | length }}** domain(s)
         {% if z_count > 20 %}*(showing first 20 — {{ z_count - 20 }} more hidden)*{% endif %}
 
-        [→ Check Entities](/config/entities)
+        [→ Check Entities](https://my.home-assistant.io/redirect/entities/)
 
         {% for domain in grouped %}
         <details>
