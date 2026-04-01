@@ -12,6 +12,11 @@
 As Home Assistant matures into a mission-critical Smart Home OS, the need for a unified stability metric becomes paramount. **HAGHS** is a logical framework designed to provide an objective **Health Index (0-100)**. It differentiates between transient hardware load and chronic maintenance neglect, providing users with a "North Star" for instance optimization.
 
 ---
+### Featured In
+- [How-To Geek](https://www.howtogeek.com/this-tool-gave-my-home-assistant-server-a-rating-and-told-me-how-to-improve-it/) — *"This tool gave my Home Assistant server a rating (and told me how to improve it)"*
+- [XDA Developers](https://www.xda-developers.com/tool-graded-home-assistant-server-told-how-make-better/) — *"This tool graded my Home Assistant server and told me how to make it better"*
+
+---
 
 ### Important: Upgrading from v2.1.x to v2.2+ (Migration Error)
 If you are upgrading from an older version and encounter a `Migration handler not found` error in your logs or UI, this is expected behavior. 
