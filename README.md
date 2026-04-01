@@ -241,7 +241,7 @@ cards:
       {% if rec not in [none, 'unknown', 'unavailable'] and '✅' not in rec %} {%
       else %} --- ✅ System healthy. No recommendations. {% endif %}
 
-      **Metric Source:** {% if psi %} 🟢 PSI active (CPU + RAM + I/O) —
+      **Metric Source:** {% if psi %} 🟢 PSI active (CPU + RAM + I/O + Disk) —
         Hardware score uses 4 components {% else %} ⚙️ Classic sensors (CPU +
         RAM + Disk) — Hardware score uses 3 components {%
         endif %}
