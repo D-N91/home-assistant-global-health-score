@@ -12,7 +12,6 @@ CONF_UPDATE_INTERVAL = "update_interval"
 
 # Defaults
 DEFAULT_NAME = "System: HA - Global Health Score"
-DEFAULT_IGNORE_LABEL = "haghs_ignore"
 DEFAULT_STORAGE_TYPE = "sd-card"
 DEFAULT_UPDATE_INTERVAL = 60  # seconds
 

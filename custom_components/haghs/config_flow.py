@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.const import PERCENTAGE
 from homeassistant.helpers import selector
 
 from .const import (
@@ -15,19 +16,29 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     DEFAULT_STORAGE_TYPE,
     DEFAULT_UPDATE_INTERVAL,
-    DEFAULT_IGNORE_LABEL,
     DOMAIN,
     STORAGE_TYPES,
 )
 
-
 SCHEMA = vol.Schema(
     {
         vol.Required(CONF_CPU_SENSOR): selector.EntitySelector(
-            selector.EntitySelectorConfig(domain="sensor")
+            selector.EntitySelectorConfig(
+                filter=(
+                    selector.EntityFilterSelectorConfig(
+                        domain="sensor", unit_of_measurement=PERCENTAGE
+                    )
+                )
+            )
         ),
         vol.Required(CONF_RAM_SENSOR): selector.EntitySelector(
-            selector.EntitySelectorConfig(domain="sensor")
+            selector.EntitySelectorConfig(
+                filter=(
+                    selector.EntityFilterSelectorConfig(
+                        domain="sensor", unit_of_measurement=PERCENTAGE
+                    )
+                )
+            )
         ),
         vol.Required(
             CONF_STORAGE_TYPE, default=DEFAULT_STORAGE_TYPE
@@ -38,10 +49,12 @@ SCHEMA = vol.Schema(
             )
         ),
         vol.Optional(
-            CONF_IGNORE_LABEL, default=DEFAULT_IGNORE_LABEL
-        ): selector.TextSelector(),
+            CONF_IGNORE_LABEL
+        ): selector.LabelSelector(),
         vol.Optional(CONF_DB_SENSOR): selector.EntitySelector(
-            selector.EntitySelectorConfig(domain="sensor")
+            selector.EntitySelectorConfig(
+                filter=selector.EntityFilterSelectorConfig(domain="sensor")
+            )
         ),
         vol.Optional(
             CONF_UPDATE_INTERVAL,
