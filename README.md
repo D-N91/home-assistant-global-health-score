@@ -169,7 +169,7 @@ If you use an **external database** (MariaDB, PostgreSQL) instead of the built-i
 
 ## Label Configuration (Smart Whitelisting)
 To prevent false positives from sleeping tablets or seasonal devices:
-1.  Go to **Settings > Devices & Services > Labels**.
+1.  Go to **Settings > Areas, labels & zones > Labels**.
 2.  Create a label named `haghs_ignore`.
 3.  Assign this label to any **Device**, **Entity**, or **Update Entity**.
     * **Pro Tip:** Assigning the label to a **Device** automatically whitelists **all underlying entities** belonging to that specific device.
