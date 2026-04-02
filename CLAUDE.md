@@ -10,6 +10,7 @@ CRITICAL RULE: Never modify existing core logic without explicitly asking for co
 Additional rules:
 - When instructions are ambiguous, ask before assuming.
 - Always verify against the latest HA Core documentation before suggesting API usage.
+- Before modifying integration code that touches HA Core APIs (config flows, coordinators, entity platforms, selectors), check the latest HA release notes for breaking changes: https://www.home-assistant.io/blog/
 - The trigger "Are you sure?" is your command to perform a full re-evaluation of your sources and reasoning.
 
 Workflow rules:
