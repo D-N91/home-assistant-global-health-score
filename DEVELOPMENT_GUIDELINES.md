@@ -1,7 +1,7 @@
 # HAGHS Development Guidelines (HA Core Standards)
 
 ## 1. Code Quality & Structure
-- **Strict Typing:** All Python code must be fully annotated with type hints. The code must pass strict `mypy` checks.
+- **Strict Typing:** All Python code must be annotated with type hints. Type hints are required for all public methods and function signatures.
 - **Language & Naming:** Code, variables, class names, and comments must be written exclusively in English. Follow PEP 8 standards.
 - **Linting:** The code must comply with official Home Assistant standards (using `ruff` for clean linting and formatting).
 
@@ -11,7 +11,7 @@
 - **Data Fetching:** Always use the `DataUpdateCoordinator` for regular updates. No isolated `time.sleep()` or custom loops.
 - **Localization (I18n):** Never hardcode user-facing text or error messages directly in Python code. Consistently use `strings.json` and the corresponding translation files (e.g. `en.json`).
 
-## 3. Automation Standards & Logic Efficiency
-- **Safety Net:** Always include timeouts and `continue_on_error` to ensure the core logic is never stalled by our scripts or automations.
-- **Resource Efficiency:** Use `trigger_id` to consolidate multiple automations efficiently where appropriate. Always evaluate the ideal execution mode (single, restart, parallel).
-- **Metrics:** Always use metric units by default for calculations and outputs.
+## 3. Safety & Stability
+- **Safety Net:** All sub-calculations must use the safety-net pattern (`_safe_calc` with timeout). A failing pillar must never crash the sensor. The coordinator itself must never raise.
+- **Error Handling:** Use `continue_on_error` and timeouts to ensure core logic is never stalled. Log warnings for degraded states instead of raising exceptions.
+- **Testing:** All new scoring logic should include unit tests with known input/output pairs. This is a prerequisite for HA Core adoption.
