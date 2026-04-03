@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import voluptuous as vol
+
 from homeassistant import config_entries
 from homeassistant.const import PERCENTAGE, UnitOfTime
 from homeassistant.helpers import selector
 
+from . import HaghsDataUpdateCoordinator
 from .const import (
     CONF_CPU_SENSOR,
     CONF_DB_SENSOR,
@@ -20,42 +24,60 @@ from .const import (
     STORAGE_TYPES,
 )
 
-DEFAULT_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_CPU_SENSOR): selector.EntitySelector(
-            selector.EntitySelectorConfig(
-                filter=(
-                    selector.EntityFilterSelectorConfig(
-                        domain="sensor", unit_of_measurement=PERCENTAGE
+
+def _schema_with_psi(psi_available: bool) -> vol.Schema:
+    """Build flow schema based on PSI availability.
+
+    CPU/RAM are optional when PSI is available and required otherwise.
+    """
+    cpu_key: vol.Marker = (
+        vol.Optional(CONF_CPU_SENSOR)
+        if psi_available
+        else vol.Required(CONF_CPU_SENSOR)
+    )
+    ram_key: vol.Marker = (
+        vol.Optional(CONF_RAM_SENSOR)
+        if psi_available
+        else vol.Required(CONF_RAM_SENSOR)
+    )
+
+    return vol.Schema(
+        {
+            cpu_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    filter=(
+                        selector.EntityFilterSelectorConfig(
+                            domain="sensor", unit_of_measurement=PERCENTAGE
+                        )
                     )
                 )
-            )
-        ),
-        vol.Required(CONF_RAM_SENSOR): selector.EntitySelector(
-            selector.EntitySelectorConfig(
-                filter=(
-                    selector.EntityFilterSelectorConfig(
-                        domain="sensor", unit_of_measurement=PERCENTAGE
+            ),
+            ram_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    filter=(
+                        selector.EntityFilterSelectorConfig(
+                            domain="sensor", unit_of_measurement=PERCENTAGE
+                        )
                     )
                 )
-            )
-        ),
-        vol.Required(
-            CONF_STORAGE_TYPE, default=DEFAULT_STORAGE_TYPE
-        ): selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=STORAGE_TYPES,
-                mode=selector.SelectSelectorMode.DROPDOWN,
-            )
-        ),
-        vol.Optional(CONF_IGNORE_LABEL): selector.LabelSelector(),
-        vol.Optional(CONF_DB_SENSOR): selector.EntitySelector(
-            selector.EntitySelectorConfig(
-                filter=selector.EntityFilterSelectorConfig(domain="sensor")
-            )
-        ),
-    }
-)
+            ),
+            vol.Required(
+                CONF_STORAGE_TYPE, default=DEFAULT_STORAGE_TYPE
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=STORAGE_TYPES,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Optional(CONF_IGNORE_LABEL): selector.LabelSelector(),
+            vol.Optional(CONF_DB_SENSOR): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    filter=selector.EntityFilterSelectorConfig(domain="sensor")
+                )
+            ),
+        }
+    )
+
 
 EXTRA_OPTIONS_SCHEMA = {
     vol.Optional(
@@ -89,10 +111,13 @@ class HaghsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, str] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Handle the initial step."""
+
         if user_input is not None:
             return self.async_create_entry(title="Global Health Score", data=user_input)
 
-        return self.async_show_form(step_id="user", data_schema=DEFAULT_SCHEMA)
+        schema = _schema_with_psi(HaghsDataUpdateCoordinator._read_psi_sync().available)
+
+        return self.async_show_form(step_id="user", data_schema=schema)
 
 
 class HaghsOptionsFlowHandler(config_entries.OptionsFlow):
@@ -103,7 +128,7 @@ class HaghsOptionsFlowHandler(config_entries.OptionsFlow):
         self._config_entry = config_entry
 
     async def async_step_init(
-        self, user_input: dict[str, any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Manage the options."""
         if user_input is not None:
@@ -111,9 +136,13 @@ class HaghsOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Current values: options take priority, then data, then defaults
         current = {**self._config_entry.data, **self._config_entry.options}
+        schema = _schema_with_psi(
+            HaghsDataUpdateCoordinator._read_psi_sync().available
+        ).extend(EXTRA_OPTIONS_SCHEMA)
         return self.async_show_form(
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(
-                DEFAULT_SCHEMA.extend(EXTRA_OPTIONS_SCHEMA), current
+                schema,
+                current,
             ),
         )
