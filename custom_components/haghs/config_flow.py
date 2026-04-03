@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import PERCENTAGE
+from homeassistant.const import PERCENTAGE, UnitOfTime
 from homeassistant.helpers import selector
 
 from .const import (
@@ -20,7 +20,7 @@ from .const import (
     STORAGE_TYPES,
 )
 
-SCHEMA = vol.Schema(
+DEFAULT_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_CPU_SENSOR): selector.EntitySelector(
             selector.EntitySelectorConfig(
@@ -48,28 +48,29 @@ SCHEMA = vol.Schema(
                 mode=selector.SelectSelectorMode.DROPDOWN,
             )
         ),
-        vol.Optional(
-            CONF_IGNORE_LABEL
-        ): selector.LabelSelector(),
+        vol.Optional(CONF_IGNORE_LABEL): selector.LabelSelector(),
         vol.Optional(CONF_DB_SENSOR): selector.EntitySelector(
             selector.EntitySelectorConfig(
                 filter=selector.EntityFilterSelectorConfig(domain="sensor")
             )
         ),
-        vol.Optional(
-            CONF_UPDATE_INTERVAL,
-            default=DEFAULT_UPDATE_INTERVAL,
-        ): selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                min=10,
-                max=3600,
-                step=1,
-                unit_of_measurement="s",
-                mode=selector.NumberSelectorMode.BOX,
-            )
-        ),
     }
 )
+
+EXTRA_OPTIONS_SCHEMA = {
+    vol.Optional(
+        CONF_UPDATE_INTERVAL,
+        default=DEFAULT_UPDATE_INTERVAL,
+    ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=10,
+            max=3600,
+            step=1,
+            unit_of_measurement=UnitOfTime.SECONDS,
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    )
+}
 
 
 class HaghsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -91,7 +92,7 @@ class HaghsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             return self.async_create_entry(title="Global Health Score", data=user_input)
 
-        return self.async_show_form(step_id="user", data_schema=SCHEMA)
+        return self.async_show_form(step_id="user", data_schema=DEFAULT_SCHEMA)
 
 
 class HaghsOptionsFlowHandler(config_entries.OptionsFlow):
@@ -110,8 +111,9 @@ class HaghsOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Current values: options take priority, then data, then defaults
         current = {**self._config_entry.data, **self._config_entry.options}
-
         return self.async_show_form(
             step_id="init",
-            data_schema=self.add_suggested_values_to_schema(SCHEMA, current),
+            data_schema=self.add_suggested_values_to_schema(
+                DEFAULT_SCHEMA.extend(EXTRA_OPTIONS_SCHEMA), current
+            ),
         )
