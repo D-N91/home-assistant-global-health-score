@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.const import PERCENTAGE, UnitOfTime
 from homeassistant.helpers import selector
@@ -18,6 +17,7 @@ from .const import (
     CONF_RAM_SENSOR,
     CONF_STORAGE_TYPE,
     CONF_UPDATE_INTERVAL,
+    CONFIG_VERSION,
     DEFAULT_STORAGE_TYPE,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
@@ -98,7 +98,8 @@ EXTRA_OPTIONS_SCHEMA = {
 class HaghsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for HAGHS."""
 
-    VERSION = 3
+    VERSION = CONFIG_VERSION.major
+    MINOR_VERSION = CONFIG_VERSION.minor
 
     @staticmethod
     def async_get_options_flow(

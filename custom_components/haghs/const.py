@@ -1,5 +1,7 @@
 """Constants for the HAGHS integration."""
 
+from dataclasses import dataclass
+
 DOMAIN = "haghs"
 
 # Config Keys
@@ -45,3 +47,18 @@ REC_ALL_CLEAR = "\u2705 System optimized"
 
 # Fallback text for empty lists in state attributes
 ATTR_NONE = "None"
+
+
+@dataclass(frozen=True, slots=True, order=True)
+class VersionInformation:
+    """Version information."""
+
+    def __repr__(self) -> str:
+        return f"{self.major}.{self.minor}"
+
+    major: int
+    minor: int
+
+
+# Current config version
+CONFIG_VERSION = VersionInformation(major=3, minor=2)
