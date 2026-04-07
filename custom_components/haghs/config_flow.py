@@ -9,7 +9,6 @@ from homeassistant import config_entries
 from homeassistant.const import PERCENTAGE, UnitOfTime
 from homeassistant.helpers import selector
 
-from . import HaghsDataUpdateCoordinator
 from .const import (
     CONF_CPU_SENSOR,
     CONF_DB_SENSOR,
@@ -23,6 +22,7 @@ from .const import (
     DOMAIN,
     STORAGE_TYPES,
 )
+from .coordinator import HaghsDataUpdateCoordinator
 
 
 def _schema_with_psi(psi_available: bool) -> vol.Schema:
