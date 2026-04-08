@@ -130,7 +130,9 @@ HAGHS is installed via **HACS** and configured via the **UI**
 
 ### 1. Prerequisites
 
-Install the **System Monitor** integration. These sensors serve as a fallback if your system does not support PSI:
+Install the built-in **System Monitor** integration via **Settings > Devices & Services > Add Integration** and search for "System Monitor". This is a **native HA integration** — it is not available in HACS.
+
+After adding it, navigate to its entity list and **manually enable** the following two entities (they are disabled by default):
 * `sensor.system_monitor_processor_use` (Percentage %)
 * `sensor.system_monitor_memory_usage` (Percentage %)
 
