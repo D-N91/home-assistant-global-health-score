@@ -12,12 +12,11 @@
 As Home Assistant matures into a mission-critical Smart Home OS, the need for a unified stability metric becomes paramount. **HAGHS** is a logical framework designed to provide an objective **Health Score (0-100)**. It differentiates between transient hardware load and chronic maintenance neglect, providing users with a "North Star" for instance optimization.
 
 ---
-
 ### Featured In
 - [How-To Geek](https://www.howtogeek.com/this-tool-gave-my-home-assistant-server-a-rating-and-told-me-how-to-improve-it/) — *"This tool gave my Home Assistant server a rating (and told me how to improve it)"*
 - [XDA Developers](https://www.xda-developers.com/tool-graded-home-assistant-server-told-how-make-better/) — *"This tool graded my Home Assistant server and told me how to make it better"*
-
-
+- [SmartHütte Podcast](https://www.youtube.com/watch?v=G892ii7YTL8&t=48s) — Episode 30, at 0:48 (German)
+- [HomeTech.fm Podcast](https://www.youtube.com/watch?v=IrIW2VR7qic&t=3676s) — Episode 569, at 1:01:16 (English)
 ---
 
 ### Important: Upgrading from v2.1.x to v2.2+ (Migration Error)
@@ -234,32 +233,31 @@ cards:
       'application_score') | int(0) %} {% set rec = state_attr(e,
       'recommendations') | default('', true) %} {% set updates = state_attr(e,
       'pending_updates') | default([], true) | list %} {% set zombies =
-      state_attr(e, 'zombie_count') | int(0) %} {% set psi =
-        state_attr(e, 'psi_available') | default(false, true) %}
+      state_attr(e, 'zombie_count') | int(0) %} {% set psi = state_attr(e,
+      'psi_available') | default(false, true) %}
 
       | Hardware | Application | | **{{ hw }}**/100 | **{{ app }}**/100 |
 
-      {% if updates | length > 0 %} 📦 **{{ updates | length }} Update(s)
-      pending** — [Open Updates](/config/updates) {% endif %}
+      {% if updates | length > 0 %} 📦 {{ updates | length }} update(s) pending
+      — [Open Updates](/config/updates) {% endif %}
 
-      {% if zombies > 0 %} 🧟 **{{ zombies }} Zombie(s)** — [Check
+      {% if zombies > 0 %} 🧟 {{ zombies }} zombie(s) — [Check
       Entities](/config/entities) {% endif %}
 
       {% if rec not in [none, 'unknown', 'unavailable'] and '✅' not in rec %} {%
       else %} --- ✅ System healthy. No recommendations. {% endif %}
 
-      **Metric Source:** {% if psi %} 🟢 PSI active (CPU + RAM + I/O + Disk) —
-        Hardware score uses 4 components {% else %} ⚙️ Classic sensors (CPU +
-        RAM + Disk) — Hardware score uses 3 components {%
-        endif %}
-
+      **Metric source**: {% if psi %}🟢 PSI active (CPU + RAM + I/O + Disk) —
+      hardware score uses 4 components{% else %}⚙️ Classic sensors (CPU + RAM +
+      Disk) — hardware score uses 3 components{% endif %}
 ```
 
 ### HAGHS Pro (Command Center)
 
 A comprehensive dashboard with full score breakdown, grouped zombies, database monitoring, recorder health, and deep-links.
 
-![HAGHS Pro v2 2](https://github.com/user-attachments/assets/a9aef263-8ee1-4f57-aa88-a54e819d42bd)
+![HAGHS Pro](https://github.com/user-attachments/assets/b5b1e3ab-d648-4784-9eb0-5df2513aea57)
+
 
 ```yaml
 type: vertical-stack
@@ -282,8 +280,7 @@ cards:
 
       | Hardware | Application | | **{{ hw }}**/100 | **{{ app }}**/100 |
 
-
-      **Global Formula:** ({{ hw }} × 0.4) + ({{ app }} × 0.6) = **{{ score }}**
+      Formula: ({{ hw }} × 0.4) + ({{ app }} × 0.6) = {{ score }}
   - type: markdown
     title: 🛡️ Advisor
     content: >
@@ -291,7 +288,7 @@ cards:
       state_attr(e, 'recommendations') | default('', true) %}
 
       {% if states(e) in ['unavailable', 'unknown'] %}
-        ⚠️ **Error:** Health Advisor sensor is offline.
+        ⚠️ Health Advisor sensor is offline.
       {% elif rec not in [none, 'unknown', 'unavailable'] and '✅' not in rec %}
         {{ rec }}
       {% else %}
@@ -314,28 +311,28 @@ cards:
         'recorder_filter_active') | default(false, true) %} {% set psi =
         state_attr(e, 'psi_available') | default(false, true) %}
 
-        {% if updates | length > 0 %} **{{ updates | length }} Update(s)
-        pending:** {% for u in updates %} &nbsp;&nbsp; • {{ u }} {% endfor %} [→
-        Open Updates](/config/updates) {% else %} ✅ All updates installed {%
-        endif %}
+        {% if updates | length > 0 %} {{ updates | length }} update(s) pending:
+        {% for u in updates %} &nbsp;&nbsp; • {{ u }} {% endfor %} [→ Open
+        Updates](/config/updates) {% else %} ✅ All updates installed {% endif %}
 
-        ---
+        <hr>
 
-        Database: {% if db_mb > 2500 %}{% elif db_mb > 1000 %}{% else %}{% endif
-        %} {{ db_mb | round(1) }} MB {% if db_mb == 0.0 %}*(external DB
+        Database: {{ db_mb | round(1) }} MB {% if db_mb == 0.0 %}*(external DB
         detected)*{% endif %}
 
-        Recorder: {% if keep not in [none, 'unknown'] %}  Purge active ({{ keep
-        }} days) {% else %}  No purge configured — DB may grow indefinitely {%
-        endif %}
 
-        {{ 'Entity filter active' if filter else ' No entity filter' }}
+        Recorder: {% if keep not in [none, 'unknown'] %}purge active ({{ keep }}
+        days){% else %}no purge configured — DB may grow indefinitely{% endif %}
+
+
+        {{ 'Entity filter active' if filter else 'No entity filter' }}
+
 
         ---
 
-        **Metric Source:** {% if psi %} 🟢 PSI active (CPU + RAM + I/O + Disk) —
-        Hardware score uses 4 components {% else %} ⚙️ Classic sensors (CPU +
-        RAM + Disk) — Hardware score uses 3 components {% endif %}
+        **Metric source**: {% if psi %}🟢 PSI active (CPU + RAM + I/O + Disk) —
+        hardware score uses 4 components{% else %}⚙️ Classic sensors (CPU + RAM
+        + Disk) — hardware score uses 3 components{% endif %}
   - type: markdown
     title: 🧟 Zombie Entities
     content: >
@@ -344,24 +341,25 @@ cards:
       state_attr(e, 'zombie_count') | int(0) %}
 
       {% if z_count == 0 %}
-        ✅ **No zombie entities detected.**
+        ✅ No zombie entities detected.
       {% else %}
-        {% if z_raw is string %} {% set z_list = z_raw.split(',') |
-        map('trim') | list %} {% else %} {% set z_list = z_raw | list %} {%
-        endif %}
+        {% if z_raw is string %}
+          {% set z_list = z_raw.split(',') | map('trim') | list %}
+        {% else %}
+          {% set z_list = z_raw | list %}
+        {% endif %}
         {% set grouped = expand(z_list) | groupby('domain') %}
 
-        **{{ z_count }} Zombie(s)** across **{{ grouped | length }}** domain(s)
+        {{ z_count }} zombie(s) across {{ grouped | length }} domain(s)
         {% if z_count > 20 %}*(showing first 20 — {{ z_count - 20 }} more hidden)*{% endif %}
 
         [→ Check Entities](/config/entities)
 
         {% for domain in grouped %}
         <details>
-        <summary><b>{{ domain[0] | title }}: {{ domain[1] | count }}</b></summary>
+        <summary>{{ domain[0] | title }}: {{ domain[1] | count }}</summary>
         {% for item in domain[1] %}
-        &nbsp;&nbsp; • {{ device_attr(item.entity_id, 'name') | default('unknown device', true) }} — {{ item.name }}: <b>{{ item.state
-        }}</b>
+        &nbsp;&nbsp; • {{ device_attr(item.entity_id, 'name') | default('unknown device', true) }} — {{ item.name }}: {{ item.state }}
         {% endfor %}
         </details>
         {% endfor %}
