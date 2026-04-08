@@ -30,56 +30,53 @@ def _schema_with_psi(psi_available: bool) -> vol.Schema:
 
     CPU/RAM are optional when PSI is available and required otherwise.
     """
-    cpu_key: vol.Marker = (
-        vol.Optional(CONF_CPU_SENSOR)
-        if psi_available
-        else vol.Required(CONF_CPU_SENSOR)
-    )
-    ram_key: vol.Marker = (
-        vol.Optional(CONF_RAM_SENSOR)
-        if psi_available
-        else vol.Required(CONF_RAM_SENSOR)
-    )
-
-    return vol.Schema(
-        {
-            cpu_key: selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    filter=(
-                        selector.EntityFilterSelectorConfig(
-                            domain="sensor", unit_of_measurement=PERCENTAGE
-                        )
-                    )
-                )
-            ),
-            ram_key: selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    filter=(
-                        selector.EntityFilterSelectorConfig(
-                            domain="sensor", unit_of_measurement=PERCENTAGE
-                        )
-                    )
-                )
-            ),
-            vol.Required(
-                CONF_STORAGE_TYPE, default=DEFAULT_STORAGE_TYPE
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=STORAGE_TYPES,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            vol.Optional(CONF_IGNORE_LABEL): selector.LabelSelector(),
-            vol.Optional(CONF_DB_SENSOR): selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    filter=selector.EntityFilterSelectorConfig(domain="sensor")
-                )
-            ),
-        }
-    )
+    schema = {
+        vol.Optional(sensor) if psi_available else vol.Required(sensor): selector
+        for sensor, selector in FALLBACK_SENSORS_SCHEMA.items()
+    }
+    return vol.Schema(schema).extend(_BASE_SCHEMA)
 
 
-EXTRA_OPTIONS_SCHEMA = {
+FALLBACK_SENSORS_SCHEMA = {
+    CONF_CPU_SENSOR: selector.EntitySelector(
+        selector.EntitySelectorConfig(
+            filter=(
+                selector.EntityFilterSelectorConfig(
+                    domain="sensor", unit_of_measurement=PERCENTAGE
+                )
+            )
+        )
+    ),
+    CONF_RAM_SENSOR: selector.EntitySelector(
+        selector.EntitySelectorConfig(
+            filter=(
+                selector.EntityFilterSelectorConfig(
+                    domain="sensor", unit_of_measurement=PERCENTAGE
+                )
+            )
+        )
+    ),
+}
+
+
+_BASE_SCHEMA = {
+    vol.Required(
+        CONF_STORAGE_TYPE, default=DEFAULT_STORAGE_TYPE
+    ): selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=STORAGE_TYPES,
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    ),
+    vol.Optional(CONF_IGNORE_LABEL): selector.LabelSelector(),
+    vol.Optional(CONF_DB_SENSOR): selector.EntitySelector(
+        selector.EntitySelectorConfig(
+            filter=selector.EntityFilterSelectorConfig(domain="sensor")
+        )
+    ),
+}
+
+_EXTRA_OPTIONS_SCHEMA = {
     vol.Optional(
         CONF_UPDATE_INTERVAL,
         default=DEFAULT_UPDATE_INTERVAL,
@@ -115,8 +112,10 @@ class HaghsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             return self.async_create_entry(title="Global Health Score", data=user_input)
-
-        schema = _schema_with_psi(HaghsDataUpdateCoordinator._read_psi_sync().available)
+        psi = await self.hass.async_add_executor_job(
+            HaghsDataUpdateCoordinator._read_psi_sync
+        )
+        schema = _schema_with_psi(psi.available)
 
         return self.async_show_form(step_id="user", data_schema=schema)
 
@@ -137,9 +136,11 @@ class HaghsOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Current values: options take priority, then data, then defaults
         current = {**self._config_entry.data, **self._config_entry.options}
-        schema = _schema_with_psi(
-            HaghsDataUpdateCoordinator._read_psi_sync().available
-        ).extend(EXTRA_OPTIONS_SCHEMA)
+        psi = await self.hass.async_add_executor_job(
+            HaghsDataUpdateCoordinator._read_psi_sync
+        )
+        schema = _schema_with_psi(psi.available).extend(_EXTRA_OPTIONS_SCHEMA)
+
         return self.async_show_form(
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(

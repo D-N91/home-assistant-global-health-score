@@ -7,13 +7,18 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryError
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers import (
     label_registry as lr,
 )
 
 from .const import (
+    CONF_CPU_SENSOR,
     CONF_IGNORE_LABEL,
+    CONF_RAM_SENSOR,
     DOMAIN,
+    IssueIds,
     VersionInformation,
 )
 from .coordinator import HaghsDataUpdateCoordinator
@@ -25,6 +30,29 @@ PLATFORMS: list[str] = ["sensor"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HAGHS from a config entry."""
+
+    config = {**entry.data, **entry.options}
+    psi = await hass.async_add_executor_job(HaghsDataUpdateCoordinator._read_psi_sync)
+    if not psi.available and not (
+        CONF_CPU_SENSOR in config and CONF_RAM_SENSOR in config
+    ):
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            IssueIds.FALLBACK_MISSING,
+            data={"entry_id": entry.entry_id},
+            is_fixable=True,
+            is_persistent=True,
+            severity=ir.IssueSeverity.CRITICAL,
+            translation_key=IssueIds.FALLBACK_MISSING,
+        )
+        raise ConfigEntryError(
+            translation_domain=DOMAIN,
+            translation_key=IssueIds.FALLBACK_MISSING,
+        )
+
+    ir.async_delete_issue(hass, DOMAIN, IssueIds.FALLBACK_MISSING)
+
     coordinator = HaghsDataUpdateCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
 

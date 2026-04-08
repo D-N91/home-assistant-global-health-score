@@ -1,6 +1,7 @@
 """Constants for the HAGHS integration."""
 
 from dataclasses import dataclass
+from enum import StrEnum
 
 DOMAIN = "haghs"
 
@@ -62,3 +63,9 @@ class VersionInformation:
 
 # Current config version
 CONFIG_VERSION = VersionInformation(major=3, minor=2)
+
+
+class IssueIds(StrEnum):
+    """Issue ids."""
+
+    FALLBACK_MISSING = "fallback_missing"
