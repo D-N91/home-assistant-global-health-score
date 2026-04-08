@@ -27,7 +27,7 @@ As Home Assistant matures into a mission-critical Smart Home OS, the need for a 
 ---
 
 ### Important: Upgrading from v2.1.x to v2.2+ (Migration Error)
-If you are upgrading from an older version and encounter a `Migration handler not found` error in your logs or UI, this is expected behavior. 
+If you are upgrading from an older version and encounter a `Migration handler not found` error in your logs or UI, this is expected behavior.
 
 Version 2.2 introduced a complete architectural rewrite, moving away from manual YAML configurations to a pure auto-detection setup. Because the old stored settings are fundamentally incompatible with the new system, an automatic background migration is not possible.
 
@@ -130,7 +130,9 @@ HAGHS is installed via **HACS** and configured via the **UI**
 
 ### 1. Prerequisites
 
-Install the **System Monitor** integration. These sensors serve as a fallback if your system does not support PSI:
+Install the built-in **System Monitor** integration via **Settings > Devices & Services > Add Integration** and search for "System Monitor". This is a **native HA integration**, it is not available in HACS.
+
+After adding it, navigate to its entity list and **manually enable** the following two entities (they are disabled by default):
 * `sensor.system_monitor_processor_use` (Percentage %)
 * `sensor.system_monitor_memory_usage` (Percentage %)
 
@@ -166,8 +168,8 @@ If you use an **external database** (MariaDB, PostgreSQL) instead of the built-i
 3. Select your database size sensor in the **"Database size sensor (optional)"** field.
 
 **Examples of compatible sensors:**
-* `sensor.mariadb_size`- MariaDB database size via SQL integration
-* `sensor.postgres_db_size`- PostgreSQL database size via SQL integration
+* `sensor.mariadb_size` - MariaDB database size via SQL integration
+* `sensor.postgres_db_size` - PostgreSQL database size via SQL integration
 
 > **Note:** If left empty, HAGHS uses the built-in SQLite auto-detection. If you use an external database and do not provide a sensor, the database score will simply be neutral (no penalty, no monitoring). The sensor must report the value in **MB**, not bytes, not GB.
 
@@ -451,36 +453,4 @@ HAGHS uses a safety net: if any pillar calculation times out or throws an error,
 * **Zero-YAML:** Database size and disk usage are now auto-detected. No manual sensors or `configuration.yaml` changes needed.
 * **PSI Integration:** Uses Linux Pressure Stall Information for CPU, Memory, and I/O with automatic fallback to classic sensors. Separate penalty tiers for PSI (stall time) vs. classic sensors (utilization), because their scales differ fundamentally.
 * **I/O Scoring:** PSI I/O pressure is now actively scored. When available, the hardware pillar uses 4 components (CPU + RAM + I/O + Disk) instead of 3.
-* **CPU Threshold Adjustment:** Classic CPU penalty now starts at >25% (was >10%) to avoid penalizing normal system activity.
-* **Smart Disk Thresholds:** Storage-type-aware penalties (SD-Card/eMMC: absolute GB; SSD: percentage-based).
-* **Dynamic Database Limit:** DB threshold scales with entity count (`1000 + entities × 2.5` MB).
-* **Zombie Improvements:** Ratio-based penalties, 15-minute grace period, attribute list capped at 20.
-* **Update Improvements:** Ignore label works on updates, core lag threshold raised to 3 months, pending updates listed by name.
-* **Config Audit:** Bonus points for good recorder configuration (purge days + entity filters).
-* **Integration Health:** Native detection of unhealthy integrations via ConfigEntry state API (SETUP_ERROR, SETUP_RETRY, FAILED_UNLOAD). 5 pts per integration, max 15 pts.
-* **Options Flow:** All settings adjustable at runtime without reinstalling.
-* **Configurable Interval:** Update frequency adjustable from 10s to 3600s.
-* **i18n Ready:** All strings externalized to `strings.json`.
-* **Removed:** Log file monitoring (deprecated since v2.0.2).
-
-### [v2.1.1] - 2026-01-29
-* **UI Migration:** Transitioned from YAML variables to a full **Config Flow (Setup Mask)**.
-* **Optimization:** `haghs_ignore` label on a Device now automatically covers all its entities.
-
-### [v2.0.2] - 2026-01-26
-* **Refinement:** Made Log File monitoring explicitly optional to support HAOS users without CLI access.
-
-### [v2.0.0] - 2026-01-26
-* **Major:** Added **Database & Log Hygiene** monitoring.
-* **Feature:** Implemented **Deep Label Support**.
-* **Logic:** Added **Core Age** penalty (>2 months lag).
-* **Logic:** Added **Cumulative Update** counting (capped at 35 pts).
-
-### [v1.3.0] - 2026-01-24
-* **NEW:** Implemented Single-Point Configuration using Template Variables.
-* **NEW:** Added Heavyweight CPU Tiers.
-* **Fixed:** Switched to **Floor Rounding** (Integer) for a more honest health assessment.
-
----
-
-**AI Disclosure:** While the architectural concept and logic are my own, I utilized AI to assist with code optimization and documentation formatting.
+* **CPU Threshold
