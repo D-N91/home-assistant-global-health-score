@@ -38,12 +38,16 @@ class MissingFallbackSensorRepairFlow(RepairsFlow):
             return self.async_create_entry(data={})
 
         schema = vol.Schema(
-            FALLBACK_SENSORS_SCHEMA,
-            required=True,
+            schema={
+                vol.Required(sensor): selector
+                for sensor, selector in FALLBACK_SENSORS_SCHEMA.items()
+            }
         )
+        current = {**entry.data, **entry.options}
+
         return self.async_show_form(
             step_id="confirm",
-            data_schema=schema,
+            data_schema=self.add_suggested_values_to_schema(schema, current),
         )
 
 
