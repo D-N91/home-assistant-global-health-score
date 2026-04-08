@@ -1,15 +1,22 @@
 <img width="460" height="210" alt="logo@2xzugeschnitten" src="https://github.com/user-attachments/assets/63f439f2-58ab-4306-9e34-932b74a30d6d" />
 
 
-**A Technical Specification for System Stability and Hygiene Standardized Monitoring.**
+**The open standard for Home Assistant instance health monitoring.**
 
 [![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![GitHub Release](https://img.shields.io/github/v/release/d-n91/home-assistant-global-health-score?style=for-the-badge&color=green)](https://github.com/d-n91/home-assistant-global-health-score/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/d-n91/home-assistant-global-health-score?style=for-the-badge&color=yellow)](https://github.com/d-n91/home-assistant-global-health-score/stargazers)
-![AI-Powered](https://img.shields.io/badge/Developed%20with-AI-blue?style=for-the-badge&logo=google-gemini&logoColor=white)
+![AI-Assisted](https://img.shields.io/badge/AI-Assisted-blue?style=for-the-badge)
 
 ## Abstract
-As Home Assistant matures into a mission-critical Smart Home OS, the need for a unified stability metric becomes paramount. **HAGHS** is a logical framework designed to provide an objective **Health Score (0-100)**. It differentiates between transient hardware load and chronic maintenance neglect, providing users with a "North Star" for instance optimization.
+As Home Assistant matures into a mission-critical Smart Home OS, the need for a unified stability metric becomes paramount. **HAGHS** is a fully local, open-scoring framework designed to provide an objective **Health Score (0-100)**. It differentiates between transient hardware load and chronic maintenance neglect, providing users with a "North Star" for instance optimization. All scoring logic is fully visible in the codebase, no hidden penalties, no black boxes.
+
+---
+
+## Mission
+
+- **Short-term:** Establish HAGHS as the community standard for Home Assistant instance health monitoring.
+- **Long-term:** Propose HAGHS as a native HA Core feature, bringing unified health scoring to every Home Assistant installation by default. With user consent, HAGHS metrics should help the Home Assistant project understand how the software is being used and how healthy instances are across the ecosystem.
 
 ---
 ### Featured In
@@ -112,7 +119,7 @@ Measures "maintenance debt", the hidden factors that cause sluggishness, failed 
 * **Database Hygiene (Dynamic Limit):** Database size is **auto-detected** for the built-in SQLite database, no manual FileSize sensor or YAML needed. For **external databases** (MariaDB, PostgreSQL), you can configure a custom database size sensor in the setup or options menu (see [External Database](#external-database) below). The limit scales with your system: `Limit_MB = 1000 + (Total_Entities × 2.5)`. Example: 200 entities = 1.5 GB limit.
 * **Updates & Core Age:** Tracks pending updates and lists them by name (e.g., `pending_updates: ["ESPHome 2024.2"]`). Penalizes a "Core Version Lag" of **>3 months** behind the latest release. The `haghs_ignore` label also works on update entities.
 * **Integration Health:** Natively detects integrations stuck in `SETUP_ERROR`, `SETUP_RETRY`, or `FAILED_UNLOAD` via HA's ConfigEntry API, the same states shown as "error" on the Integrations page. Penalty: **5 pts per unhealthy integration**, capped at **15 pts**.
-* **Safety Net:** A static **30-point deduction** for stale backups.
+* **Backup Health:** A static **30-point deduction** for stale backups.
 * **Config Audit (Bonus):** Awards up to **+10 points** for good recorder hygiene, purge days configured (+5) and entity filters active (+5).
 
 ---
@@ -197,8 +204,11 @@ HAGHS exposes the following attributes for use in dashboard cards, automations, 
 
 ## Roadmap
 
-* The roadmap is a living document. New ideas are collected, evaluated, and added here once they are deemed viable and aligned with the
-  HAGHS philosophy.
+The roadmap is a living document. New ideas are collected, evaluated, and added here once they are deemed viable and aligned with the HAGHS philosophy:
+
+- **Local-only:** Features must never introduce outbound network traffic or cloud dependencies.
+- **System health focus:** Purely decorative features are rejected. Every addition must serve instance health monitoring.
+- **HA Core compatibility:** All new code must follow HA Core standards to support the long-term goal of native adoption.
 
 ---
 
@@ -387,6 +397,9 @@ cards:
 **Why is my score so low?**
 Check the Advisor recommendations in the dashboard card. They tell you exactly where penalties come from (e.g., "5 update(s) pending", "Stale backup detected").
 
+**Does HAGHS send any data to external servers?**
+No. All data collection is strictly local. HAGHS reads directly from Linux kernel interfaces (`/proc/pressure/*`), `psutil`, and the HA internal state machine. No outbound network traffic is ever initiated by this integration.
+
 **Does HAGHS work with Docker / Kubernetes?**
 Yes. HAGHS auto-detects disk usage and database size on any platform. The Core update entity is detected dynamically, no Supervisor dependency.
 
@@ -406,10 +419,10 @@ Go to **Settings > Integrations > HAGHS > Configure** and select your database s
 No. HAGHS reads disk usage directly via `psutil`. No manual sensor selection required.
 
 **What are the exact database penalties?**
-HAGHS uses a dynamic limit based on your entity count (`1000 + entities × 2.5` MB). Below the limit: **0 pts**. Up to 2.5× the limit: **10 pts**. Above 2.5×: **30 pts**. Example: With 200 entities your limit is 1.5 GB — a 3 GB database would cost 10 pts, a 4+ GB database would cost 30 pts.
+HAGHS uses a dynamic limit based on your entity count (`1000 + entities × 2.5` MB). Below the limit: **0 pts**. Up to 2.5× the limit: **10 pts**. Above 2.5×: **30 pts**. Example: With 200 entities your limit is 1.5 GB, a 3 GB database would cost 10 pts, a 4+ GB database would cost 30 pts.
 
 **How are update penalties calculated?**
-Each pending update costs **5 pts**. A Core version lag (≥3 months behind) adds **20 pts**. The combined update penalty is capped at **35 pts** — so even with many outdated components, the update category alone won't tank your score beyond that.
+Each pending update costs **5 pts**. A Core version lag (≥3 months behind) adds **20 pts**. The combined update penalty is capped at **35 pts**, so even with many outdated components, the update category alone won't tank your score beyond that.
 
 **What does the Config Audit bonus do?**
 HAGHS awards up to +10 bonus points if your recorder is well-configured: +5 for having `purge_keep_days` set, and +5 for having an entity include/exclude filter active. This rewards proactive database management.
@@ -436,7 +449,7 @@ HAGHS uses a safety net: if any pillar calculation times out or throws an error,
 ### [v2.2.0] - 2026-03-29
 * **Architecture:** Full async migration to `DataUpdateCoordinator` with safety-net timeouts.
 * **Zero-YAML:** Database size and disk usage are now auto-detected. No manual sensors or `configuration.yaml` changes needed.
-* **PSI Integration:** Uses Linux Pressure Stall Information for CPU, Memory, and I/O with automatic fallback to classic sensors. Separate penalty tiers for PSI (stall time) vs. classic sensors (utilization) — because their scales differ fundamentally.
+* **PSI Integration:** Uses Linux Pressure Stall Information for CPU, Memory, and I/O with automatic fallback to classic sensors. Separate penalty tiers for PSI (stall time) vs. classic sensors (utilization), because their scales differ fundamentally.
 * **I/O Scoring:** PSI I/O pressure is now actively scored. When available, the hardware pillar uses 4 components (CPU + RAM + I/O + Disk) instead of 3.
 * **CPU Threshold Adjustment:** Classic CPU penalty now starts at >25% (was >10%) to avoid penalizing normal system activity.
 * **Smart Disk Thresholds:** Storage-type-aware penalties (SD-Card/eMMC: absolute GB; SSD: percentage-based).
