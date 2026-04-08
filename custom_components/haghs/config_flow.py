@@ -6,7 +6,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import PERCENTAGE, UnitOfTime
+from homeassistant.const import UnitOfTime
 from homeassistant.helpers import selector
 
 from .const import (
