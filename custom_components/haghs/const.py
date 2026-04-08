@@ -61,10 +61,6 @@ class VersionInformation:
     minor: int
 
 
-# Current config version
-CONFIG_VERSION = VersionInformation(major=3, minor=2)
-
-
 class IssueIds(StrEnum):
     """Issue ids."""
 

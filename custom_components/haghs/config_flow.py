@@ -16,11 +16,11 @@ from .const import (
     CONF_RAM_SENSOR,
     CONF_STORAGE_TYPE,
     CONF_UPDATE_INTERVAL,
-    CONFIG_VERSION,
     DEFAULT_STORAGE_TYPE,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     STORAGE_TYPES,
+    VersionInformation,
 )
 from .coordinator import HaghsDataUpdateCoordinator
 
@@ -91,12 +91,14 @@ _EXTRA_OPTIONS_SCHEMA = {
     )
 }
 
+_CONFIG_VERSION = VersionInformation(major=3, minor=2)
+
 
 class HaghsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for HAGHS."""
 
-    VERSION = CONFIG_VERSION.major
-    MINOR_VERSION = CONFIG_VERSION.minor
+    VERSION = _CONFIG_VERSION.major
+    MINOR_VERSION = _CONFIG_VERSION.minor
 
     @staticmethod
     def async_get_options_flow(
