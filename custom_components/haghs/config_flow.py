@@ -40,20 +40,12 @@ def _schema_with_psi(psi_available: bool) -> vol.Schema:
 FALLBACK_SENSORS_SCHEMA = {
     CONF_CPU_SENSOR: selector.EntitySelector(
         selector.EntitySelectorConfig(
-            filter=(
-                selector.EntityFilterSelectorConfig(
-                    domain="sensor", unit_of_measurement=PERCENTAGE
-                )
-            )
+            filter=(selector.EntityFilterSelectorConfig(domain="sensor"))
         )
     ),
     CONF_RAM_SENSOR: selector.EntitySelector(
         selector.EntitySelectorConfig(
-            filter=(
-                selector.EntityFilterSelectorConfig(
-                    domain="sensor", unit_of_measurement=PERCENTAGE
-                )
-            )
+            filter=(selector.EntityFilterSelectorConfig(domain="sensor"))
         )
     ),
 }
