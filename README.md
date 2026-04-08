@@ -453,4 +453,36 @@ HAGHS uses a safety net: if any pillar calculation times out or throws an error,
 * **Zero-YAML:** Database size and disk usage are now auto-detected. No manual sensors or `configuration.yaml` changes needed.
 * **PSI Integration:** Uses Linux Pressure Stall Information for CPU, Memory, and I/O with automatic fallback to classic sensors. Separate penalty tiers for PSI (stall time) vs. classic sensors (utilization), because their scales differ fundamentally.
 * **I/O Scoring:** PSI I/O pressure is now actively scored. When available, the hardware pillar uses 4 components (CPU + RAM + I/O + Disk) instead of 3.
-* **CPU Threshold
+* **CPU Threshold Adjustment:** Classic CPU penalty now starts at >25% (was >10%) to avoid penalizing normal system activity.
+* **Smart Disk Thresholds:** Storage-type-aware penalties (SD-Card/eMMC: absolute GB; SSD: percentage-based).
+* **Dynamic Database Limit:** DB threshold scales with entity count (`1000 + entities × 2.5` MB).
+* **Zombie Improvements:** Ratio-based penalties, 15-minute grace period, attribute list capped at 20.
+* **Update Improvements:** Ignore label works on updates, core lag threshold raised to 3 months, pending updates listed by name.
+* **Config Audit:** Bonus points for good recorder configuration (purge days + entity filters).
+* **Integration Health:** Native detection of unhealthy integrations via ConfigEntry state API (SETUP_ERROR, SETUP_RETRY, FAILED_UNLOAD). 5 pts per integration, max 15 pts.
+* **Options Flow:** All settings adjustable at runtime without reinstalling.
+* **Configurable Interval:** Update frequency adjustable from 10s to 3600s.
+* **i18n Ready:** All strings externalized to `strings.json`.
+* **Removed:** Log file monitoring (deprecated since v2.0.2).
+
+### [v2.1.1] - 2026-01-29
+* **UI Migration:** Transitioned from YAML variables to a full **Config Flow (Setup Mask)**.
+* **Optimization:** `haghs_ignore` label on a Device now automatically covers all its entities.
+
+### [v2.0.2] - 2026-01-26
+* **Refinement:** Made Log File monitoring explicitly optional to support HAOS users without CLI access.
+
+### [v2.0.0] - 2026-01-26
+* **Major:** Added **Database & Log Hygiene** monitoring.
+* **Feature:** Implemented **Deep Label Support**.
+* **Logic:** Added **Core Age** penalty (>2 months lag).
+* **Logic:** Added **Cumulative Update** counting (capped at 35 pts).
+
+### [v1.3.0] - 2026-01-24
+* **NEW:** Implemented Single-Point Configuration using Template Variables.
+* **NEW:** Added Heavyweight CPU Tiers.
+* **Fixed:** Switched to **Floor Rounding** (Integer) for a more honest health assessment.
+
+---
+
+**AI Disclosure:** While the architectural concept and logic are my own, I utilized AI to assist with code optimization and documentation formatting.
