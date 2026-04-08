@@ -41,6 +41,7 @@ REC_BACKUP_STALE = "\U0001f6a8 Security: Stale backup detected!"
 REC_UPDATES_PENDING = "\U0001f4e6 Maintenance: {count} update(s) pending."
 REC_ZOMBIES = "\U0001f9df Hygiene: {count} zombie(s) detected."
 REC_CORE_LAG = "\U0001f474 Legacy: Core version is >3 months old."
+REC_POWER_UNSTABLE = "\u26a0\ufe0f Power: Under-voltage detected — unstable power supply!"
 REC_ALL_CLEAR = "\u2705 System optimized"
 
 # Fallback text for empty lists in state attributes

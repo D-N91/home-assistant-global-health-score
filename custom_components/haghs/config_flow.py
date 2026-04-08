@@ -12,7 +12,6 @@ from .const import (
     CONF_RAM_SENSOR,
     CONF_STORAGE_TYPE,
     CONF_UPDATE_INTERVAL,
-    DEFAULT_IGNORE_LABEL,
     DEFAULT_STORAGE_TYPE,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
@@ -23,7 +22,7 @@ from .const import (
 class HaghsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for HAGHS."""
 
-    VERSION = 2
+    VERSION = 3
 
     @staticmethod
     def async_get_options_flow(
@@ -58,8 +57,8 @@ class HaghsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     )
                 ),
                 vol.Optional(
-                    CONF_IGNORE_LABEL, default=DEFAULT_IGNORE_LABEL
-                ): selector.TextSelector(),
+                    CONF_IGNORE_LABEL,
+                ): selector.LabelSelector(),
                 vol.Optional(CONF_DB_SENSOR): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
@@ -111,8 +110,10 @@ class HaghsOptionsFlowHandler(config_entries.OptionsFlow):
                 ),
                 vol.Optional(
                     CONF_IGNORE_LABEL,
-                    default=current.get(CONF_IGNORE_LABEL, DEFAULT_IGNORE_LABEL),
-                ): selector.TextSelector(),
+                    description={
+                        "suggested_value": current.get(CONF_IGNORE_LABEL),
+                    },
+                ): selector.LabelSelector(),
                 vol.Optional(
                     CONF_DB_SENSOR,
                     description={
