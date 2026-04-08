@@ -5,7 +5,7 @@
 
 [![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![GitHub Release](https://img.shields.io/github/v/release/d-n91/home-assistant-global-health-score?style=for-the-badge&color=green)](https://github.com/d-n91/home-assistant-global-health-score/releases)
-[![GitHub Stars](https://img.shields.io/github/stars/d-n91/home-assistant-global-health-score?style=for-the-badge&color=yellow)](https://github.com/d-n91/home-assistant-global-health-score/stargazers)
+[![GitHub Stars](https://img.shields.io/github/stars/D-N91/home-assistant-global-health-score?style=for-the-badge&color=yellow)](https://github.com/D-N91/home-assistant-global-health-score/stargazers)
 ![AI-Assisted](https://img.shields.io/badge/AI-Assisted-blue?style=for-the-badge)
 
 ## Abstract
