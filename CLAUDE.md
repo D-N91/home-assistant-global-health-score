@@ -5,7 +5,7 @@ BEFORE you start any task, respond to an issue, or write code, you must read and
 1. `HAGHS_PHILOSOPHY.md` (Vision & Alignment)
 2. `DEVELOPMENT_GUIDELINES.md` (Hard Coding Rules)
 
-CRITICAL RULE: Never modify existing core logic without explicitly asking for confirmation first. Do not fabricate technical feasibility — be honest when something is not possible in Home Assistant, and explain possible workarounds instead.
+CRITICAL RULE: Never modify any `*.py` file without explicitly asking for confirmation first. Do not fabricate technical feasibility — be honest when something is not possible in Home Assistant, and explain possible workarounds instead.
 
 Additional rules:
 - When instructions are ambiguous, ask before assuming.
@@ -17,3 +17,18 @@ Workflow rules:
 - Always develop new features and fixes on the `dev` branch, never directly on `main`.
 - Keep `v2.3_CHANGELOG.md` on `dev` updated for every change.
 - Write all GitHub comments and community responses in English.
+
+## File-Level Autonomy Rules
+
+### I may update without asking:
+- `ROADMAP.md` — add/update planned features, declined items, or the date, based on session context (issues, community feedback, conversations)
+- `v2.3_CHANGELOG.md` (dev only) — document changes already made in the session
+
+### I must always ask first:
+- Any `*.py` file — scoring logic, config flow, coordinator, constants
+- `README.md` — owner manages this manually; never commit changes to it without explicit instruction
+- `HAGHS_PHILOSOPHY.md` — foundational document, changes affect everything downstream
+- `DEVELOPMENT_GUIDELINES.md` — same as above
+- Any push to `main` — only with explicit instruction per session
+- Any branch merge — always requires confirmation
+- Deleting files or reverting commits
