@@ -27,7 +27,7 @@ As Home Assistant matures into a mission-critical Smart Home OS, the need for a 
 ---
 
 ### Important: Upgrading from v2.1.x to v2.2+ (Migration Error)
-If you are upgrading from an older version and encounter a `Migration handler not found` error in your logs or UI, this is expected behavior. 
+If you are upgrading from an older version and encounter a `Migration handler not found` error in your logs or UI, this is expected behavior.
 
 Version 2.2 introduced a complete architectural rewrite, moving away from manual YAML configurations to a pure auto-detection setup. Because the old stored settings are fundamentally incompatible with the new system, an automatic background migration is not possible.
 
@@ -130,7 +130,7 @@ HAGHS is installed via **HACS** and configured via the **UI**
 
 ### 1. Prerequisites
 
-Install the built-in **System Monitor** integration via **Settings > Devices & Services > Add Integration** and search for "System Monitor". This is a **native HA integration** — it is not available in HACS.
+Install the built-in **System Monitor** integration via **Settings > Devices & Services > Add Integration** and search for "System Monitor". This is a **native HA integration**, it is not available in HACS.
 
 After adding it, navigate to its entity list and **manually enable** the following two entities (they are disabled by default):
 * `sensor.system_monitor_processor_use` (Percentage %)
@@ -168,8 +168,8 @@ If you use an **external database** (MariaDB, PostgreSQL) instead of the built-i
 3. Select your database size sensor in the **"Database size sensor (optional)"** field.
 
 **Examples of compatible sensors:**
-* `sensor.mariadb_size`- MariaDB database size via SQL integration
-* `sensor.postgres_db_size`- PostgreSQL database size via SQL integration
+* `sensor.mariadb_size` - MariaDB database size via SQL integration
+* `sensor.postgres_db_size` - PostgreSQL database size via SQL integration
 
 > **Note:** If left empty, HAGHS uses the built-in SQLite auto-detection. If you use an external database and do not provide a sensor, the database score will simply be neutral (no penalty, no monitoring). The sensor must report the value in **MB**, not bytes, not GB.
 
