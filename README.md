@@ -117,7 +117,7 @@ Measures "maintenance debt", the hidden factors that cause sluggishness, failed 
 
 * **Zombie Entities (Ratio-based, max 20 pts):** Penalties scale with the percentage of zombies relative to total entities, not a fixed count. A **15-minute grace period** prevents false positives from temporary network outages. The attribute list is capped at 20 entries to protect the state machine; the full count is always accurate.
 * **Database Hygiene (Dynamic Limit):** Database size is **auto-detected** for the built-in SQLite database, no manual FileSize sensor or YAML needed. For **external databases** (MariaDB, PostgreSQL), you can configure a custom database size sensor in the setup or options menu (see [External Database](#external-database) below). The limit scales with your system: `Limit_MB = 1000 + (Total_Entities × 2.5)`. Example: 200 entities = 1.5 GB limit.
-* **Updates & Core Age:** Tracks pending updates and lists them by name (e.g., `pending_updates: ["ESPHome 2024.2"]`). Penalizes a "Core Version Lag" of **>3 months** behind the latest release. The `haghs_ignore` label also works on update entities.
+* **Updates & Core Age:** Tracks pending updates and lists them by name (e.g., `pending_updates: ["ESPHome 2024.2"]`). Penalizes a "Core Version Lag" of **>3 months** behind the latest release. Each update costs **5 pts**, Core lag adds **20 pts**, capped at **35 pts** total. The `haghs_ignore` label also works on update entities.
 * **Integration Health:** Natively detects integrations stuck in `SETUP_ERROR`, `SETUP_RETRY`, or `FAILED_UNLOAD` via HA's ConfigEntry API, the same states shown as "error" on the Integrations page. Penalty: **5 pts per unhealthy integration**, capped at **15 pts**.
 * **Backup Health:** A static **30-point deduction** for stale backups.
 * **Config Audit (Bonus):** Awards up to **+10 points** for good recorder hygiene, purge days configured (+5) and entity filters active (+5).
@@ -405,29 +405,17 @@ No. All data collection is strictly local. HAGHS reads directly from Linux kerne
 **Does HAGHS work with Docker / Kubernetes?**
 Yes. HAGHS auto-detects disk usage and database size on any platform. The Core update entity is detected dynamically, no Supervisor dependency.
 
-**What is PSI and why does HAGHS use it?**
-Pressure Stall Information (PSI) is a Linux kernel feature that measures real resource contention, how long tasks are stalled waiting for CPU, memory, or I/O. Unlike classic utilization sensors (which just show "how busy" a resource is), PSI reveals actual bottlenecks. HAGHS uses separate penalty thresholds for PSI and classic sensors because their scales differ fundamentally (e.g., 5% PSI stall time is significant, while 5% CPU utilization is idle).
-
-**Why does setup still ask for CPU/RAM sensors if PSI is automatic?**
-These sensors are a **smart fallback**. If your system supports PSI (most Linux-based HA installations), the sensors are not actively used for scoring. They are required so HAGHS can still function on systems without PSI support (Windows, older Docker setups).
-
-**What does "Hardware score uses 4 components" mean?**
-When PSI is available, HAGHS scores four hardware dimensions: **CPU + RAM + I/O + Disk**, averaged equally. Without PSI, I/O monitoring is not possible, so the hardware score is based on **3 components** (CPU + RAM + Disk). This means PSI-enabled systems get more granular hardware scoring.
+**How does PSI work and why does HAGHS use it?**
+PSI (Pressure Stall Information) is a Linux kernel feature that measures real resource contention — how long tasks are actually waiting for CPU, memory, or I/O — rather than how busy a resource is. A system at 40% CPU utilization can have near-zero stall time, while one at 20% utilization may be heavily stalled. HAGHS uses PSI as the primary metric where available, falling back to classic utilization sensors on systems without PSI support (Windows, older Docker setups). Because their scales differ fundamentally, HAGHS uses separate penalty thresholds for each. When PSI is active, I/O monitoring is also included, giving a 4-component hardware score (CPU + RAM + I/O + Disk). Without PSI, the score uses 3 components (CPU + RAM + Disk). The classic sensors selected during setup are only used when PSI is unavailable.
 
 **I use an external database (MariaDB / PostgreSQL). How do I monitor it?**
-Go to **Settings > Integrations > HAGHS > Configure** and select your database size sensor in the **"Database size sensor"** field. The sensor must report the database size in **MB**. A common approach is to create a sensor via the SQL integration that queries your database size. If you don't provide a sensor, HAGHS will skip database monitoring (no penalty, no scoring), your other scores are unaffected.
+See the [External Database](#external-database) section above for full setup instructions. The sensor must report the database size in **MB**. If no sensor is configured, HAGHS skips database monitoring, no penalty, no scoring, other scores unaffected.
 
 **Do I still need a disk usage sensor?**
 No. HAGHS reads disk usage directly via `psutil`. No manual sensor selection required.
 
-**What are the exact database penalties?**
-HAGHS uses a dynamic limit based on your entity count (`1000 + entities × 2.5` MB). Below the limit: **0 pts**. Up to 2.5× the limit: **10 pts**. Above 2.5×: **30 pts**. Example: With 200 entities your limit is 1.5 GB, a 3 GB database would cost 10 pts, a 4+ GB database would cost 30 pts.
-
 **How are update penalties calculated?**
-Each pending update costs **5 pts**. A Core version lag (≥3 months behind) adds **20 pts**. The combined update penalty is capped at **35 pts**, so even with many outdated components, the update category alone won't tank your score beyond that.
-
-**What does the Config Audit bonus do?**
-HAGHS awards up to +10 bonus points if your recorder is well-configured: +5 for having `purge_keep_days` set, and +5 for having an entity include/exclude filter active. This rewards proactive database management.
+Each pending update costs **5 pts**. A Core version lag (≥3 months behind) adds **20 pts**. The combined penalty is capped at **35 pts**.
 
 **How does the zombie grace period work?**
 Entities that just became `unavailable` or `unknown` are ignored for 15 minutes. This prevents your score from dropping during brief network hiccups or device reboots. After 15 minutes, they count as zombies.
