@@ -220,7 +220,7 @@ HAGHS provides all data as sensor attributes. Dashboard visualization happens en
 
 Below are two ready-to-use card configurations:
 
-### HAGHS Lite (Quick Check)
+### HAGHS Lite v1.1 (Quick Check)
 
 A compact card for a fast overview, score, sub-scores, and actionable links.
 
@@ -264,12 +264,9 @@ cards:
       hardware score uses 4 components{% else %}⚙️ Classic sensors (CPU + RAM +
       Disk) — hardware score uses 3 components{% endif %}
 
-      ---
-
-      *Card v1.1*
 ```
 
-### HAGHS Pro (Command Center)
+### HAGHS Pro v1.1 (Command Center)
 
 A comprehensive dashboard with full score breakdown, grouped zombies, database monitoring, recorder health, and deep-links.
 
@@ -383,9 +380,6 @@ cards:
         {% endfor %}
       {% endif %}
 
-      ---
-
-      *Card v1.1*
 ```
 
 ### Lite vs. Pro Comparison
