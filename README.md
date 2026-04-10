@@ -220,7 +220,7 @@ HAGHS provides all data as sensor attributes. Dashboard visualization happens en
 
 Below are two ready-to-use card configurations:
 
-### HAGHS Lite (Quick Check)
+### HAGHS Lite v1.1 (Quick Check)
 
 A compact card for a fast overview, score, sub-scores, and actionable links.
 
@@ -246,15 +246,16 @@ cards:
       'recommendations') | default('', true) %} {% set updates = state_attr(e,
       'pending_updates') | default([], true) | list %} {% set zombies =
       state_attr(e, 'zombie_count') | int(0) %} {% set psi = state_attr(e,
-      'psi_available') | default(false, true) %}
+      'psi_available') | default(false, true) %} {% set _upd =
+      '/config/updates' %} {% set _ent = '/config/entities' %}
 
       | Hardware | Application | | **{{ hw }}**/100 | **{{ app }}**/100 |
 
       {% if updates | length > 0 %} 📦 {{ updates | length }} update(s) pending
-      — [Open Updates](/config/updates) {% endif %}
+      — [Open Updates]({{ _upd }}) {% endif %}
 
       {% if zombies > 0 %} 🧟 {{ zombies }} zombie(s) — [Check
-      Entities](/config/entities) {% endif %}
+      Entities]({{ _ent }}) {% endif %}
 
       {% if rec not in [none, 'unknown', 'unavailable'] and '✅' not in rec %} {%
       else %} --- ✅ System healthy. No recommendations. {% endif %}
@@ -262,9 +263,10 @@ cards:
       **Metric source**: {% if psi %}🟢 PSI active (CPU + RAM + I/O + Disk) —
       hardware score uses 4 components{% else %}⚙️ Classic sensors (CPU + RAM +
       Disk) — hardware score uses 3 components{% endif %}
+
 ```
 
-### HAGHS Pro (Command Center)
+### HAGHS Pro v1.1 (Command Center)
 
 A comprehensive dashboard with full score breakdown, grouped zombies, database monitoring, recorder health, and deep-links.
 
@@ -321,11 +323,12 @@ cards:
         db_mb = state_attr(e, 'db_size_mb') | float(0) %} {% set keep =
         state_attr(e, 'recorder_keep_days') %} {% set filter = state_attr(e,
         'recorder_filter_active') | default(false, true) %} {% set psi =
-        state_attr(e, 'psi_available') | default(false, true) %}
+        state_attr(e, 'psi_available') | default(false, true) %} {% set _upd =
+        '/config/updates' %}
 
         {% if updates | length > 0 %} {{ updates | length }} update(s) pending:
         {% for u in updates %} &nbsp;&nbsp; • {{ u }} {% endfor %} [→ Open
-        Updates](/config/updates) {% else %} ✅ All updates installed {% endif %}
+        Updates]({{ _upd }}) {% else %} ✅ All updates installed {% endif %}
 
         <hr>
 
@@ -365,7 +368,7 @@ cards:
         {{ z_count }} zombie(s) across {{ grouped | length }} domain(s)
         {% if z_count > 20 %}*(showing first 20 — {{ z_count - 20 }} more hidden)*{% endif %}
 
-        [→ Check Entities](/config/entities)
+        {% set _ent = '/config/entities' %}[→ Check Entities]({{ _ent }})
 
         {% for domain in grouped %}
         <details>
@@ -376,6 +379,7 @@ cards:
         </details>
         {% endfor %}
       {% endif %}
+
 ```
 
 ### Lite vs. Pro Comparison
