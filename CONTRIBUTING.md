@@ -106,9 +106,7 @@ under "Test plan".
 ## Review Process
 
 - Maintainer is `@D-N91`.
-- Responses in English only, including on community forums.
-- The trigger phrase **"Are you sure?"** from the maintainer means: stop,
-  re-evaluate all sources and reasoning, then respond.
+- Responses in English only,
 - Expect at least one review round before merge. Don't force-push during an
   active review — append commits; the maintainer may squash on merge.
 
