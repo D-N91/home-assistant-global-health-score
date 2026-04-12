@@ -1,19 +1,19 @@
 ## Summary
 
-<!-- 1-3 bullets describing what this PR does and why. -->
+1-3 bullets describing what this PR does and why.
 
 ## Motivation
 
-<!-- Link to issue, community thread, or short rationale. -->
+Link to issue, community thread, or short rationale.
 
 ## Changes
 
-<!-- List of files/areas changed and the nature of the change. -->
+ist of files/areas changed and the nature of the change.
 
 ## Test plan
 
-<!-- Manual steps taken to validate. Once the test suite exists, list the
-pytest commands you ran. -->
+Manual steps taken to validate. Once the test suite exists, list the
+pytest commands you ran.
 
 ## Checklist
 
@@ -29,10 +29,8 @@ pytest commands you ran. -->
       `strings.json`
 - [ ] Type hints on all new public functions / methods
 - [ ] `ruff` clean locally
-- [ ] No `*.py` changes in `custom_components/haghs/` made without prior
-      maintainer confirmation (see `CLAUDE.md`)
 - [ ] Migration path documented for any breaking change
 
 ## Breaking changes?
 
-<!-- "None" or a list with migration notes. -->
+"None" or a list with migration notes.
