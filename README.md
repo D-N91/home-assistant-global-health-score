@@ -49,8 +49,8 @@ Version 2.2 introduced a complete architectural rewrite, moving away from manual
 - [Label Configuration](#label-configuration-smart-whitelisting)
 - [Sensor Attributes](#sensor-attributes)
 - [UI Integration](#ui-integration)
-  - [HAGHS Lite](#haghs-lite-quick-check)
-  - [HAGHS Pro](#haghs-pro-command-center)
+  - [HAGHS Lite](#haghs-lite-v11-quick-check)
+  - [HAGHS Pro](haghs-pro-v11-command-center)
 - [FAQ](#faq)
 - [Changelog](#changelog)
 
