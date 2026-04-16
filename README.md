@@ -3,6 +3,7 @@
 
 **The open standard for Home Assistant instance health monitoring.**
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/22d138d764884b0380033fb33d7c1875)](https://app.codacy.com/gh/D-N91/home-assistant-global-health-score?utm_source=github.com&utm_medium=referral&utm_content=D-N91/home-assistant-global-health-score&utm_campaign=Badge_Grade)
 [![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![GitHub Release](https://img.shields.io/github/v/release/d-n91/home-assistant-global-health-score?style=for-the-badge&color=green)](https://github.com/d-n91/home-assistant-global-health-score/releases)
 ![Integration Usage](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=Integration%20usage&suffix=%2B%20Installs&cacheSeconds=15600&style=for-the-badge&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.haghs.total)
