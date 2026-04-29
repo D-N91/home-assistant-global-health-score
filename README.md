@@ -1,4 +1,5 @@
-<img width="460" height="210" alt="logo@2xzugeschnitten" src="https://github.com/user-attachments/assets/63f439f2-58ab-4306-9e34-932b74a30d6d" />
+<img width="460" alt="logo@2xzugeschnitten" src="https://github.com/user-attachments/assets/63f439f2-58ab-4306-9e34-932b74a30d6d" />
+
 
 
 **The open standard for Home Assistant instance health monitoring.**
